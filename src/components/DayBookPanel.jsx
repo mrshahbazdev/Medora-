@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ageText, visitPatient, uid } from '../lib/model.js';
-import { dayRegisterHtml } from '../lib/docsHtml.js';
+import { dayRegisterHtml, cashHandoverHtml } from '../lib/docsHtml.js';
 
 export default function DayBookPanel({ store, update }) {
   const today = new Date().toISOString().slice(0, 10);
@@ -42,6 +42,7 @@ export default function DayBookPanel({ store, update }) {
         <button className="btn small ghost" onClick={() => setDate(today)}>Today</button>
         <span className="spacer" />
         <button className="btn small ghost" onClick={printRegister} title="Print OPD day register">Print day sheet</button>
+        <button className="btn small ghost" onClick={() => window.api.export.print({ html: cashHandoverHtml({ store, date, fees: totalFees, expenses }) })} title="Cash handover slip">Handover slip</button>
       </div>
 
       <div className="cards">

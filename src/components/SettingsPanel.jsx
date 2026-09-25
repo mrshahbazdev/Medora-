@@ -45,13 +45,14 @@ export default function SettingsPanel({ store, update, setStore }) {
 
       <h2 className="ptitle">Doctors & rooms</h2>
       <table className="grid" style={{ marginBottom: 10 }}>
-        <thead><tr><th>Doctor</th><th>Qualifications</th><th>Shift / roster</th><th>Room</th><th></th></tr></thead>
+        <thead><tr><th>Doctor</th><th>Qualifications</th><th>Shift / roster</th><th>Fee share %</th><th>Room</th><th></th></tr></thead>
         <tbody>
           {(st.doctors || []).map(d => (
             <tr key={d.id}>
               <td><input className="in" value={d.name} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.name = e.target.value; })} /></td>
               <td><input className="in" value={d.qualifications || ''} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.qualifications = e.target.value; })} /></td>
               <td><input className="in" style={{ width: 110 }} value={d.shift || ''} placeholder="5–9 PM" title="Shift / roster" onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.shift = e.target.value; })} /></td>
+              <td><input className="in num" style={{ width: 64 }} type="number" min="0" max="100" value={d.share ?? ''} placeholder="%" title="Fee share %" onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.share = Number(e.target.value) || 0; })} /></td>
               <td>
                 <select className="in" value={d.room || ''} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.room = e.target.value; })}>
                   <option value="">—</option>
@@ -126,6 +127,18 @@ export default function SettingsPanel({ store, update, setStore }) {
       </div>
 
       <h2 className="ptitle">Audit log (last 30)</h2>
+      <div className="row" style={{ marginBottom: 8 }}>
+        <button className="btn small ghost" onClick={() => {
+          const esc = x => String(x ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+          const rows = (store.auditLog || []).slice().reverse().map(a => `<tr><td>${esc((a.at || '').replace('T', ' ').slice(0, 19))}</td><td>${esc(a.user)}</td><td>${esc(a.what)}</td></tr>`).join('');
+          window.api.export.print({ html: `<!doctype html><html><head><style>@page{size:A4;margin:14mm}body{font:10pt 'Segoe UI',sans-serif}table{width:100%;border-collapse:collapse}td{border:1px solid #e2e8f0;padding:3px 6px}th{text-align:left;background:#0d9488;color:#fff;padding:4px 6px}</style></head><body><h2>Medora — audit log</h2><table><thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></body></html>` });
+        }}>Print audit report</button>
+        <button className="btn small" style={{ background: '#dc2626' }} onClick={() => {
+          if (!confirm('Saara data delete ho jayega (snapshot backup le liya jayega). Continue?')) return;
+          window.api.store.snapshot && window.api.store.snapshot();
+          update(s => { Object.keys(s).forEach(k => delete s[k]); Object.assign(s, emptyStore(), { settings: defaultSettings() }); });
+        }}>Reset — delete all data</button>
+      </div>
       <div style={{ maxHeight: 180, overflowY: 'auto', background: '#f8fafc', borderRadius: 8, padding: 8, marginBottom: 14, fontSize: 12 }}>
         {(store.auditLog || []).slice(-30).reverse().map((a, i) => (
           <div key={i} className="muted" style={{ padding: '2px 0', borderBottom: '1px solid #eef2f7' }}>{a.at?.replace('T', ' ').slice(0, 19)} — <b>{a.user}</b> — {a.what}</div>
@@ -177,6 +190,7 @@ export default function SettingsPanel({ store, update, setStore }) {
         <label className="lbl">Accent color
           <input className="in" type="color" style={{ width: 60, height: 38, padding: 2 }} value={(st.letterhead && st.letterhead.accent) || '#0d9488'} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.accent = e.target.value; })} /></label>
         {st.letterhead?.logoDataUrl && <img src={st.letterhead.logoDataUrl} style={{ height: 44, objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: 6, padding: 2 }} />}
+        <input className="in" style={{ width: 130 }} value={st.padWatermark || ''} placeholder="Watermark (e.g. COPY)" onChange={e => mut(x => x.padWatermark = e.target.value)} />
         <input className="in" style={{ flex: 1 }} value={st.padThirdLine || ''} placeholder="Footer line on pad (e.g. Pashto / regional language note)" onChange={e => mut(x => x.padThirdLine = e.target.value)} />
       </div>
 

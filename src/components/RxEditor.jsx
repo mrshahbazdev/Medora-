@@ -41,7 +41,16 @@ export default function RxEditor({ store, update, patient, visit, close }) {
       if (!visit.consultMinutes) update(s => { const v = s.visits.find(x => x.id === visit.id); if (v) v.consultMinutes = mins; });
     };
   }, []);
-  const mut = (fn) => update(s => { const v = s.visits.find(x => x.id === visit.id); if (v) fn(v); });
+  const mut = (fn) => update(s => {
+    const v = s.visits.find(x => x.id === visit.id); if (!v) return; fn(v);
+    if (v.followUpDays) {
+      const d = new Date(v.date); d.setDate(d.getDate() + Number(v.followUpDays));
+      const ad = d.toISOString().slice(0, 10);
+      s.appointments = s.appointments || [];
+      if (!s.appointments.some(a => a.patientId === v.patientId && a.date === ad))
+        s.appointments.push({ id: uid(), patientId: v.patientId, date: ad, doctorId: v.doctorId || '', note: 'Follow-up (auto)' });
+    }
+  });
   const lastVisit = store.visits.filter(v => v.patientId === patient.id && v.id !== visit.id)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
 

@@ -66,6 +66,7 @@ export function rxDocument({ store, patient, visit }) {
   ${visit.complaint ? `<div class="rx-row"><span class="rx-lab">C/O</span> ${esc(visit.complaint)}</div>` : ''}
   ${visit.diagnosis ? `<div class="rx-row"><span class="rx-lab">Dx</span> ${esc(visit.diagnosis)}</div>` : ''}
   <div class="rx-symbol">℞</div>
+  ${st.padWatermark ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none"><span style="font-size:52pt;font-weight:800;color:${st.letterhead?.accent || '#0d9488'};opacity:.07;transform:rotate(-28deg);white-space:nowrap">${esc(st.padWatermark)}</span></div>` : ''}
   <table class="rx-items">${visit.items.map(i => itemLine(i, st.rxUrdu ? 'urdu' : st.bilingual)).join('')}</table>
   ${(() => {
     if (visit.type === 'eye' && visit.eye && (visit.eye.od?.sph || visit.eye.os?.sph)) {

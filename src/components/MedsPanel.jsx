@@ -1,3 +1,4 @@
+import { medLabelHtml } from '../lib/docsHtml.js';
 import React, { useMemo, useState } from 'react';
 import { uid } from '../lib/model.js';
 import { FREQUENCIES } from '../lib/meds.js';

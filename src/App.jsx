@@ -36,8 +36,18 @@ const RECEPTION_TABS = ['queue', 'daybook'];
 
 export default function App() {
   if (new URLSearchParams(window.location.search).get('tv') === '1') return <TvDisplay />;
+  if (new URLSearchParams(window.location.search).get('kiosk') === '1' && store)
+    return <div style={{ zoom: 1.6, maxWidth: 1100, margin: '12px auto', padding: '0 16px' }}><QueuePanel store={store} update={update} /></div>;
   const [store, setStore] = useState(null);
   const [user, setUser] = useState(null);
+  const idleRef = useRef(null);
+  useEffect(() => {
+    if (!user) return;
+    const reset = () => { clearTimeout(idleRef.current); idleRef.current = setTimeout(() => setUser(null), 10 * 60 * 1000); };
+    ['mousemove', 'keydown', 'click'].forEach(e => window.addEventListener(e, reset));
+    reset();
+    return () => { clearTimeout(idleRef.current); ['mousemove', 'keydown', 'click'].forEach(e => window.removeEventListener(e, reset)); };
+  }, [user]);
   const [tab, setTab] = useState('dash');
   const [patientId, setPatientId] = useState(null);
   const [rxVisitId, setRxVisitId] = useState(null); // visit open in Rx editor
@@ -149,6 +159,7 @@ export default function App() {
             {reception && <span className="opd" style={{ background: '#fde68a', color: '#92400e' }}>Receptionist</span>}
             {user && <span className="muted">👤 {user.name} <button className="icon" title="Lock" onClick={() => setUser(null)}>🔒</button></span>}
             <button className="icon" title="Waiting-room TV board" onClick={() => window.open(window.location.href.split('?')[0] + '?tv=1', '_blank')}>📺</button>
+            <button className="icon" title="Token kiosk screen" onClick={() => window.open(window.location.href.split('?')[0] + '?kiosk=1', '_blank')}>🖥</button>
           </div>
           <span className="spacer" />
           <div className="top-actions">

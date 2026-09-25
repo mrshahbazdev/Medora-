@@ -435,3 +435,44 @@ export function otListHtml({ store, date }) {
   </style></head><body><h2>${esc(st.clinicName || 'Clinic')} — OT list, ${esc(date)}</h2>
   <table><tr><th>#</th><th>Time</th><th>Patient</th><th>Procedure</th><th>Surgeon</th><th>Anesthesia</th><th>Status</th></tr>${rows || '<tr><td colspan="7">No cases scheduled</td></tr>'}</table></body></html>`;
 }
+
+// ---- Cash handover slip (80mm) --------------------------------------------
+export const cashHandoverHtml = ({ store, date, fees, expenses, opening = 0 }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const st = store.settings || {};
+  const expRows = (expenses || []).map(e => `<tr><td>${esc(e.title)}</td><td>${esc(e.category || '')}</td><td class="r">${e.amount}</td></tr>`).join('');
+  return `<!doctype html><html><head><style>
+    @page { size: 80mm auto; margin: 0 } body { margin:0; font: 9pt/1.45 'Segoe UI',sans-serif; color:#111; width:76mm; padding:2mm }
+    .h { text-align:center; border-bottom:1.5px solid #111; padding-bottom:2mm; margin-bottom:2mm }
+    table { width:100%; border-collapse:collapse } td { padding:1px 0 } .r { text-align:right }
+    .big { font-size:13pt; font-weight:800; text-align:center; border:1.5px solid #111; border-radius:4px; padding:2mm; margin:2mm 0 }
+  </style></head><body>
+    <div class="h"><b>${esc(st.clinicName || 'Clinic')}</b><br/>CASH HANDOVER SLIP<br/><b>${esc(date)}</b></div>
+    <table>
+      <tr><td>Opening balance</td><td class="r">Rs ${opening}</td></tr>
+      <tr><td>OPD fees collected</td><td class="r">Rs ${fees}</td></tr>
+      <tr><td>Expenses</td><td class="r">− Rs ${(expenses || []).reduce((t, e) => t + (Number(e.amount) || 0), 0)}</td></tr>
+    </table>
+    ${expRows ? `<table style="margin-top:1mm;border-top:1px dashed #888">${expRows}</table>` : ''}
+    <div class="big">HANDOVER — Rs ${(opening || 0) + fees - (expenses || []).reduce((t, e) => t + (Number(e.amount) || 0), 0)}</div>
+    <table><tr><td>Cashier sign: __________</td><td class="r">Received by: __________</td></tr></table>
+    <p style="text-align:center;margin-top:2mm">Medora — cash day end</p>
+  </body></html>`;
+};
+
+// ---- Medicine shelf barcode label (Code 39, no libs) -----------------------
+const C39 = { '0': 'nnnwwnwnn', '1': 'wnnwnnnnw', '2': 'nnwwnnnnw', '3': 'wnwwnnnnn', '4': 'nnnwwnnnw', '5': 'wnnwwnnnn', '6': 'nnwwwnnnn', '7': 'nnnwnnwnw', '8': 'wnnwnnwnn', '9': 'nnwwnnwnn', 'A': 'wnnnnwnnw', 'B': 'nnwnnwnnw', 'C': 'wnwnnwnnn', 'D': 'nnnnwwnnw', 'E': 'wnnnwwnnn', 'F': 'nnwnwwnnn', 'G': 'nnnnnwwnw', 'H': 'wnnnnwwnn', 'I': 'nnwnnwwnn', 'J': 'nnnnwwwnn', 'K': 'wnnnnnnww', 'L': 'nnwnnnnww', 'M': 'wnwnnnnwn', 'N': 'nnnnwnnww', 'O': 'wnnnwnnwn', 'P': 'nnwnwnnwn', 'Q': 'nnnnnnwww', 'R': 'wnnnnnwwn', 'S': 'nnwnnnwwn', 'T': 'nnnnwnwwn', 'U': 'wwnnnnnnw', 'V': 'nwwnnnnnw', 'W': 'wwwnnnnnn', 'X': 'nwnnwnnnw', 'Y': 'wwnnwnnnn', 'Z': 'nwwnwnnnn', '-': 'nwnnnnwnw', '.': 'wwnnnnwnn', ' ': 'nwwnnnwnn', '*': 'nwnnwnwnn' };
+const c39bars = (txt) => ('*' + txt.toUpperCase().replace(/[^0-9A-Z .-]/g, '') + '*').split('').map(ch => {
+  const p = C39[ch] || C39[' ']; let out = '';
+  for (let i = 0; i < 9; i++) { const w = p[i] === 'w' ? 3 : 1; out += `<span style="display:inline-block;width:${w}px;height:9mm;background:${i % 2 === 0 ? '#000' : '#fff'}"></span>`; }
+  return out + '<span style="display:inline-block;width:1px"></span>';
+}).join('');
+export const medLabelHtml = ({ store, med }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return `<!doctype html><html><head><style>@page { size: 60mm 30mm; margin: 0 } body { margin:0; font:8pt/1.3 'Segoe UI',sans-serif; width:58mm; padding:1.5mm; text-align:center }</style></head><body>
+    <b style="font-size:9pt">${esc(med.name)}</b> ${esc(med.strength || '')}<br/>
+    <span style="font-size:7pt;color:#444">${esc(med.generic || '')} ${med.price ? '· Rs ' + med.price : ''}</span><br/>
+    <div style="margin:1mm 0">${c39bars(med.name)}</div>
+    <span style="font-size:6.5pt;letter-spacing:1px">${esc((med.name || '').toUpperCase())} — ${esc(store.settings.clinicName || '')}</span>
+  </body></html>`;
+};

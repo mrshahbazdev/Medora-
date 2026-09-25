@@ -49,7 +49,7 @@ export default function StatsPanel({ store, update }) {
         <thead><tr><th>Doctor</th><th>Visits</th><th>Fees</th><th>Share (net)</th></tr></thead>
         <tbody>
           {Object.entries(doctorShare).map(([id, d]) => (
-            <tr key={id}><td><b>{doctorName(id)}</b></td><td>{d.count}</td><td>Rs {d.fees}</td><td>Rs {Math.round(d.fees * (d.fees ? (income - expTotal) / (income || 1) : 1))}</td></tr>
+            <tr key={id}><td><b>{doctorName(id)}</b></td><td>{d.count}</td><td>Rs {d.fees}</td><td>Rs {(() => { const doc = (store.settings.doctors || []).find(x => x.id === id); return doc && doc.share ? Math.round(d.fees * doc.share / 100) : Math.round(d.fees * (d.fees ? (income - expTotal) / (income || 1) : 1)); })()}</td></tr>
           ))}
           {!Object.keys(doctorShare).length && <tr><td colSpan="4" className="muted">No visits this month.</td></tr>}
         </tbody>
