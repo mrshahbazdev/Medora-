@@ -8,13 +8,17 @@ import SettingsPanel from './components/SettingsPanel.jsx';
 import DayBookPanel from './components/DayBookPanel.jsx';
 import { exportCsv } from './lib/csv.js';
 
-const TABS = [
-  { id: 'dash', label: 'Dashboard' },
-  { id: 'queue', label: 'Queue' },
-  { id: 'patients', label: 'Patients' },
-  { id: 'meds', label: 'Medicines' },
-  { id: 'daybook', label: 'Day book' },
-  { id: 'settings', label: 'Settings' }
+const NAV = [
+  { sec: 'Front desk', items: [
+    { id: 'dash', label: 'Dashboard', glyph: '⌂' },
+    { id: 'queue', label: 'Token queue', glyph: '≡' },
+    { id: 'patients', label: 'Patients', glyph: '◉' },
+    { id: 'daybook', label: 'Day book', glyph: '▤' }
+  ]},
+  { sec: 'Clinic', items: [
+    { id: 'meds', label: 'Medicines', glyph: '℞' },
+    { id: 'settings', label: 'Settings', glyph: '⚙' }
+  ]}
 ];
 
 export default function App() {
@@ -74,20 +78,39 @@ export default function App() {
   const firstRun = !store.settings.firstRunDone;
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">Medora</div>
-        <nav className="tabs">
-          {TABS.map(t => (
-            <button key={t.id} className={'tab' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>{t.label}</button>
-          ))}
-        </nav>
-        <div className="top-actions">
-          <button className="btn ghost" onClick={exportAllJson} title="Backup everything as JSON">Backup</button>
-          <button className="btn ghost" onClick={exportAllCsv}>Export CSV</button>
-          <button className="btn ghost" onClick={importJson}>Import</button>
-          <button className="btn" onClick={addPatient}>+ Patient</button>
+      <aside className="side">
+        <div className="sbrand"><span className="smark">✚</span><div><div className="sname">Medora</div><div className="ssub">Clinic OS</div></div></div>
+        {NAV.map(g => (
+          <div key={g.sec} className="sgrp">
+            <div className="ssec">{g.sec}</div>
+            {g.items.map(t => (
+              <button key={t.id} className={'snav' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
+                <span className="sglyph">{t.glyph}</span>{t.label}
+              </button>
+            ))}
+          </div>
+        ))}
+        <div className="sfoot">
+          <div className="sdotline"><span className="sdot" />Offline</div>
+          <span>Data stays on this computer</span>
         </div>
-      </header>
+      </aside>
+
+      <div className="main">
+        <header className="status">
+          <div className="stline">
+            <b>{store.settings.clinicName || 'Clinic'}</b>
+            <span className="opd">OPD open</span>
+            <span className="muted">{(store.settings.doctors || [])[0]?.name || store.settings.doctorName || ''}</span>
+          </div>
+          <span className="spacer" />
+          <div className="top-actions">
+            <button className="btn ghost" onClick={exportAllJson} title="Backup everything as JSON">Backup</button>
+            <button className="btn ghost" onClick={exportAllCsv}>CSV</button>
+            <button className="btn ghost" onClick={importJson}>Import</button>
+            <button className="btn" onClick={addPatient}>+ New patient</button>
+          </div>
+        </header>
 
       {firstRun && (
         <div className="welcome">
@@ -100,15 +123,16 @@ export default function App() {
         </div>
       )}
 
-      <main className="body">
+        <main className="body">
         {tab === 'dash' && <Dashboard store={store} update={update} openPatient={openPatient} openRx={openRx} />}
         {tab === 'queue' && <QueuePanel store={store} update={update} openPatient={openPatient} openRx={openRx} />}
         {tab === 'patients' && <PatientsPanel store={store} update={update} patientId={patientId} setPatientId={setPatientId} rxVisitId={rxVisitId} setRxVisitId={setRxVisitId} />}
         {tab === 'meds' && <MedsPanel store={store} update={update} />}
         {tab === 'daybook' && <DayBookPanel store={store} update={update} />}
         {tab === 'settings' && <SettingsPanel store={store} update={update} setStore={setStore} />}
-      </main>
-      <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Nothing leaves this computer.</footer>
+        </main>
+        <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Nothing leaves this computer.</footer>
+      </div>
     </div>
   );
 }
