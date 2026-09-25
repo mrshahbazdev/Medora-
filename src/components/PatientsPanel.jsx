@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid, nextToken } from '../lib/model.js';
-import { patientCardHtml, ancCardHtml } from '../lib/docsHtml.js';
+import { patientCardHtml, ancCardHtml, ledgerHtml, claimFormHtml } from '../lib/docsHtml.js';
 import RxEditor from './RxEditor.jsx';
 
 export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId, user }) {

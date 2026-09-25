@@ -72,10 +72,38 @@ export default function App() {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       window.api.store.save(store);
-      if (store.settings.syncFolder)
-        window.api.export.toFolder({ folder: store.settings.syncFolder, name: 'medora-sync.json', text: JSON.stringify(store) });
+      if (store.settings.syncFolder) {
+        const text = JSON.stringify(store);
+        window.api.export.toFolder({ folder: store.settings.syncFolder, name: 'medora-sync.json', text });
+        syncText.current = text;
+      }
     }, 600);
     return () => clearTimeout(saveTimer.current);
+  }, [store]);
+
+  // LAN auto-sync: poll the shared sync file; when another PC on the network
+  // writes a newer store, adopt it locally (ignores our own writes).
+  const syncText = useRef('');
+  const [syncFlash, setSyncFlash] = useState(0);
+  useEffect(() => {
+    const t = setInterval(async () => {
+      const folder = store?.settings?.syncFolder;
+      if (!folder || store?.settings?.syncAuto === false) return;
+      const res = await window.api.export.readFromFolder({ folder, name: 'medora-sync.json' }).catch(() => null);
+      if (!res?.ok || !res.text) return;
+      if (res.text === syncText.current || res.text === JSON.stringify(store)) return;
+      try {
+        const doc = JSON.parse(res.text);
+        if (!doc || !Array.isArray(doc.patients)) return;
+        const base = emptyStore();
+        Object.keys(base).forEach(k => { if (doc[k] === undefined) doc[k] = base[k]; });
+        ['ledger', 'purchases', 'otSchedule', 'bloodBank', 'referrals', 'nursing', 'attendance', 'payroll'].forEach(k => { if (!Array.isArray(doc[k])) doc[k] = []; });
+        syncText.current = res.text;
+        setStore(doc);
+        setSyncFlash(Date.now());
+      } catch { /* partial write — try again next poll */ }
+    }, 5000);
+    return () => clearInterval(t);
   }, [store]);
 
   const update = (fn, label) => setStore(s => {
@@ -162,6 +190,11 @@ export default function App() {
                 {store.settings.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>)}
             {reception && <span className="opd" style={{ background: '#fde68a', color: '#92400e' }}>Receptionist</span>}
+            {store.settings.syncFolder && store.settings.syncAuto !== false && (
+              <span className="opd" title={`LAN auto-sync on — watching ${store.settings.syncFolder}/medora-sync.json every 5s`}
+                style={Date.now() - syncFlash < 8000 ? { background: '#bbf7d0', color: '#166534' } : { background: '#e0f2fe', color: '#0369a1' }}>
+                ↻ LAN sync
+              </span>)}
             {user && <span className="muted">👤 {user.name} <button className="icon" title="Lock" onClick={() => setUser(null)}>🔒</button></span>}
             <button className="icon" title="Waiting-room TV board" onClick={() => window.open(window.location.href.split('?')[0] + '?tv=1', '_blank')}>📺</button>
             <button className="icon" title="Token kiosk screen" onClick={() => window.open(window.location.href.split('?')[0] + '?kiosk=1', '_blank')}>🖥</button>

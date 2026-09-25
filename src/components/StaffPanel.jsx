@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { uid } from '../lib/model.js';
+import { payslipHtml } from '../lib/docsHtml.js';
 
 export default function StaffPanel({ store, update }) {
   const today = new Date().toISOString().slice(0, 10);

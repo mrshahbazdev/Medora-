@@ -121,10 +121,14 @@ export default function SettingsPanel({ store, update, setStore }) {
       </div>
 
       <h2 className="ptitle">Sync folder (LAN / USB)</h2>
-      <div className="frow" style={{ marginBottom: 14 }}>
-        <label className="lbl" style={{ flex: 1 }}>Shared folder path — app writes <code>medora-sync.json</code> here on every save (another PC can Import it)
+      <div className="frow" style={{ marginBottom: 8 }}>
+        <label className="lbl" style={{ flex: 1 }}>Shared folder path — app writes <code>medora-sync.json</code> here on every save; same folder path set on every PC keeps them in sync automatically
           <input className="in" value={st.syncFolder || ''} placeholder="e.g. \\RECEPTION-PC\shared  ya  D:\shared" onChange={e => mut(x => x.syncFolder = e.target.value)} /></label>
       </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 13 }}>
+        <input type="checkbox" checked={st.syncAuto !== false} onChange={e => mut(x => x.syncAuto = e.target.checked)} />
+        Auto-sync every 5 seconds — changes made on other PCs on the same WiFi/LAN appear here automatically
+      </label>
 
       <h2 className="ptitle">Audit log (last 30)</h2>
       <div className="row" style={{ marginBottom: 8 }}>

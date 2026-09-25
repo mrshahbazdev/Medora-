@@ -15,7 +15,8 @@ contextBridge.exposeInMainWorld('api', {
     json: (payload) => ipcRenderer.invoke('export:json', payload),
     binary: (payload) => ipcRenderer.invoke('export:binary', payload),
     print: (payload) => ipcRenderer.invoke('export:print', payload),
-    toFolder: (payload) => ipcRenderer.invoke('export:toFolder', payload)
+    toFolder: (payload) => ipcRenderer.invoke('export:toFolder', payload),
+    readFromFolder: (payload) => ipcRenderer.invoke('export:readFromFolder', payload)
   },
   app: {
     version: () => ipcRenderer.invoke('app:version'),

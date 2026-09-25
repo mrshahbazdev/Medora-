@@ -17,6 +17,16 @@ function registerExportIPC() {
     } catch (err) { return { ok: false, error: String(err) }; }
   });
 
+  // Read a file back from the shared folder (LAN auto-sync watcher uses this).
+  ipcMain.handle('export:readFromFolder', (_e, { folder, name }) => {
+    try {
+      if (!folder) return { ok: false, error: 'no folder' };
+      const fp = path.join(folder, name);
+      if (!fs.existsSync(fp)) return { ok: false, error: 'not found' };
+      return { ok: true, text: fs.readFileSync(fp, 'utf8'), mtimeMs: fs.statSync(fp).mtimeMs };
+    } catch (err) { return { ok: false, error: String(err) }; }
+  });
+
   // Vector PDF: real text, selectable and searchable, fonts embedded by Chromium.
   ipcMain.handle('export:pdf', async (_e, { html, suggestedName }) => {
     const res = await dialog.showSaveDialog(win(), {
