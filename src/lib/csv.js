@@ -7,7 +7,7 @@ const row = (arr) => arr.map(cell).join(',');
 
 export function exportCsv(store) {
   const out = [];
-  out.push('# Medora export — ' + new Date().toISOString().slice(0, 10));
+  out.push('# Clinory export — ' + new Date().toISOString().slice(0, 10));
 
   out.push('');
   out.push('[patients]');

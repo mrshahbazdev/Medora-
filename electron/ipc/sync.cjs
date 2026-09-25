@@ -41,7 +41,7 @@ function registerSyncIPC() {
   // Serve the latest store to peers on the LAN.
   const server = http.createServer((req, res) => {
     const u = new URL(req.url || '/', 'http://x');
-    const tok = req.headers['x-medora-token'] || '';
+    const tok = req.headers['x-clinory-token'] || req.headers['x-medora-token'] || '';
     if (u.pathname === '/store' && codeOk(tok)) {
       let doc = latestDoc;
       try { doc = require('../db.cjs').loadDoc() || doc; } catch {}
@@ -62,19 +62,19 @@ function registerSyncIPC() {
   sock.bind(BEACON_PORT);
   setInterval(() => {
     try {
-      sock.send(JSON.stringify({ app: 'medora', clientId, port: SYNC_PORT, updatedAt: latestAt }), BEACON_PORT, '255.255.255.255');
+      sock.send(JSON.stringify({ app: 'clinory', clientId, port: SYNC_PORT, updatedAt: latestAt }), BEACON_PORT, '255.255.255.255');
     } catch { /* offline interface */ }
   }, BEACON_EVERY);
 
   sock.on('message', (buf, rinfo) => {
     try {
       const msg = JSON.parse(buf.toString());
-      if (!msg || msg.app !== 'medora' || msg.clientId === clientId) return;
+      if (!msg || (msg.app !== 'clinory' && msg.app !== 'medora') || msg.clientId === clientId) return;
       const remoteAt = msg.updatedAt || 0;
       if (remoteAt <= latestAt || inflight.has(rinfo.address)) return;
       inflight.add(rinfo.address);
       http.get({ host: rinfo.address, port: msg.port || SYNC_PORT, path: '/store', timeout: 4000,
-        headers: { 'x-medora-token': pairCode || lanCode() } }, res => {
+        headers: { 'x-clinory-token': pairCode || lanCode() } }, res => {
         let body = '';
         res.on('data', c => body += c);
         res.on('end', () => {
@@ -83,7 +83,7 @@ function registerSyncIPC() {
             const doc = JSON.parse(body);
             if (doc && Array.isArray(doc.patients) && (doc.updatedAt || 0) > latestAt) {
               const w = BrowserWindow.getAllWindows()[0];
-              if (w) w.webContents.send('medora:sync-apply', doc);
+              if (w) w.webContents.send('clinory:sync-apply', doc);
             }
           } catch { /* malformed payload */ }
         });

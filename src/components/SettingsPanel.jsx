@@ -19,7 +19,7 @@ function LanConnect({ st, mut }) {
           setInfo({ ...info, enabled: r.enabled, error: r.error });
           refresh();
         }} />
-        Share Medora on this WiFi — other PCs/laptops open it in a browser; all data saves on THIS computer
+        Share Clinory on this WiFi — other PCs/laptops open it in a browser; all data saves on THIS computer
       </label>
       {info.error && <div style={{ color: '#dc2626', marginTop: 6 }}>⚠ Could not start sharing: {info.error}</div>}
       {info.enabled && (<>
@@ -121,7 +121,7 @@ export default function SettingsPanel({ store, update, setStore }) {
         <label className="chk"><input type="checkbox" checked={!!st.rxUrdu} onChange={e => mut(x => x.rxUrdu = e.target.checked)} /> Urdu-only prescription pad (advice + dosage instructions in Urdu)</label>
         <label className="chk"><input type="checkbox" checked={!!st.uiUrdu} onChange={e => mut(x => x.uiUrdu = e.target.checked)} /> Urdu interface (right-to-left navigation)</label>
         <label className="lbl" style={{ width: '100%' }}>Backup folder path (for USB/cloud sync reminder)
-          <input className="in" value={st.backupFolder || ''} placeholder="e.g. D:\Medora Backups" onChange={e => mut(x => x.backupFolder = e.target.value)} /></label>
+          <input className="in" value={st.backupFolder || ''} placeholder="e.g. D:\Clinory Backups" onChange={e => mut(x => x.backupFolder = e.target.value)} /></label>
       </div>
 
       <h2 className="ptitle">Wards &amp; branches</h2>
@@ -164,12 +164,12 @@ export default function SettingsPanel({ store, update, setStore }) {
         <button className="btn small ghost" onClick={() => mut(x => { x.users = x.users || []; x.users.push({ id: 'u' + Date.now(), name: 'Dr. / staff', role: 'doctor', pin: '0000' }); })}>+ User</button>
       </div>
 
-      <h2 className="ptitle">Local connection — use Medora on other PCs</h2>
+      <h2 className="ptitle">Local connection — use Clinory on other PCs</h2>
       <LanConnect st={st} mut={mut} />
 
       <h2 className="ptitle">Sync folder (LAN / USB)</h2>
       <div className="frow" style={{ marginBottom: 8 }}>
-        <label className="lbl" style={{ flex: 1 }}>Shared folder path — app writes <code>medora-sync.json</code> here on every save; same folder path set on every PC keeps them in sync automatically
+        <label className="lbl" style={{ flex: 1 }}>Shared folder path — app writes <code>clinory-sync.json</code> here on every save; same folder path set on every PC keeps them in sync automatically
           <input className="in" value={st.syncFolder || ''} placeholder="e.g. \\RECEPTION-PC\shared  ya  D:\shared" onChange={e => mut(x => x.syncFolder = e.target.value)} /></label>
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 13 }}>
@@ -182,7 +182,7 @@ export default function SettingsPanel({ store, update, setStore }) {
         <button className="btn small ghost" onClick={() => {
           const esc = x => String(x ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
           const rows = (store.auditLog || []).slice().reverse().map(a => `<tr><td>${esc((a.at || '').replace('T', ' ').slice(0, 19))}</td><td>${esc(a.user)}</td><td>${esc(a.what)}</td></tr>`).join('');
-          window.api.export.print({ html: `<!doctype html><html><head><style>@page{size:A4;margin:14mm}body{font:10pt 'Segoe UI',sans-serif}table{width:100%;border-collapse:collapse}td{border:1px solid #e2e8f0;padding:3px 6px}th{text-align:left;background:#0d9488;color:#fff;padding:4px 6px}</style></head><body><h2>Medora — audit log</h2><table><thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></body></html>` });
+          window.api.export.print({ html: `<!doctype html><html><head><style>@page{size:A4;margin:14mm}body{font:10pt 'Segoe UI',sans-serif}table{width:100%;border-collapse:collapse}td{border:1px solid #e2e8f0;padding:3px 6px}th{text-align:left;background:#0d9488;color:#fff;padding:4px 6px}</style></head><body><h2>Clinory — audit log</h2><table><thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></body></html>` });
         }}>Print audit report</button>
         <button className="btn small" style={{ background: '#dc2626' }} onClick={() => {
           if (!confirm('Saara data delete ho jayega (snapshot backup le liya jayega). Continue?')) return;
@@ -246,7 +246,7 @@ export default function SettingsPanel({ store, update, setStore }) {
       </div>
       <div className="frow" style={{ marginBottom: 14 }}>
         <label className="chk"><input type="checkbox" checked={!!st.letterhead?.prePrinted} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.prePrinted = e.target.checked; })} />
-          Pre-printed letterhead — Medora prints no header; Rx starts below the clinic's own printed pad</label>
+          Pre-printed letterhead — Clinory prints no header; Rx starts below the clinic's own printed pad</label>
         {st.letterhead?.prePrinted && <label className="lbl">Start from top (mm)
           <input className="in" type="number" min="10" max="100" style={{ width: 80 }} value={st.letterhead.topMm || 40} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.topMm = Number(e.target.value) || 40; })} /></label>}
       </div>
@@ -297,8 +297,8 @@ export default function SettingsPanel({ store, update, setStore }) {
         <button className="btn small ghost" onClick={async () => {
           const pw = prompt('Backup password:'); if (!pw) return;
           const data = JSON.stringify(store);
-          const enc = 'MEDORA-ENC:' + btoa(Array.from(data).map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ pw.charCodeAt(i % pw.length))).join(''));
-          await window.api.export.toFolder({ folder: '', name: 'medora-backup-encrypted.txt', text: enc });
+          const enc = 'CLINORY-ENC:' + btoa(Array.from(data).map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ pw.charCodeAt(i % pw.length))).join(''));
+          await window.api.export.toFolder({ folder: '', name: 'clinory-backup-encrypted.txt', text: enc });
           alert('Encrypted backup saved to export folder.');
         }}>Encrypted backup</button>
         <button className="btn small ghost" onClick={() => window.api.app.openUserData()}>Open data folder</button>

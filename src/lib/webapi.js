@@ -1,4 +1,4 @@
-// Browser-mode shim: when Medora is opened from another PC's browser
+// Browser-mode shim: when Clinory is opened from another PC's browser
 // (http://<host>:47071) there is no Electron preload api — provide the same
 // surface over fetch so the whole app works and data lives on the host PC.
 export function installWebApi() {
@@ -8,11 +8,12 @@ export function installWebApi() {
   // or is entered once on the connect screen — then kept in localStorage.
   const qs = new URLSearchParams(location.search);
   if (qs.get('token')) {
-    localStorage.setItem('medora_token', qs.get('token'));
+    localStorage.setItem('clinory_token', qs.get('token'));
+    localStorage.removeItem('medora_token');
     qs.delete('token');
     history.replaceState(null, '', location.pathname + (qs.toString() ? '?' + qs : ''));
   }
-  const token = () => localStorage.getItem('medora_token') || '';
+  const token = () => localStorage.getItem('clinory_token') || localStorage.getItem('medora_token') || '';
 
   let gateShown = false;
   const showGate = () => {
@@ -20,7 +21,7 @@ export function installWebApi() {
     gateShown = true;
     document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0c1c33;font-family:system-ui">
       <form id="g" style="background:#fff;padding:32px;border-radius:14px;width:320px;box-shadow:0 20px 60px #0004">
-        <div style="font-weight:800;font-size:18px;color:#0d1f3c">Medora — connect</div>
+        <div style="font-weight:800;font-size:18px;color:#0d1f3c">Clinory — connect</div>
         <div style="font-size:12.5px;color:#64748b;margin:6px 0 14px">Enter the access code shown on the main computer (Settings → Local connection).</div>
         <input id="c" placeholder="Access code" autocomplete="off" style="width:100%;padding:10px;border:1px solid #dbe3ee;border-radius:8px;font-size:15px;letter-spacing:2px;text-transform:uppercase"/>
         <button style="width:100%;margin-top:10px;padding:10px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-weight:700">Connect</button>
@@ -29,11 +30,11 @@ export function installWebApi() {
     document.getElementById('g').onsubmit = ev => {
       ev.preventDefault();
       const v = document.getElementById('c').value.trim().toUpperCase();
-      fetch('/api/ping', { headers: { 'x-medora-ping': '1' } }).then(() => {
-        return fetch('/api/store', { headers: { 'x-medora-token': v } });
+      fetch('/api/ping', { headers: { 'x-clinory-ping': '1' } }).then(() => {
+        return fetch('/api/store', { headers: { 'x-clinory-token': v } });
       }).then(r => {
         if (r.status === 401) { document.getElementById('e').style.display = 'block'; return; }
-        localStorage.setItem('medora_token', v);
+        localStorage.setItem('clinory_token', v);
         location.reload();
       }).catch(() => { document.getElementById('e').textContent = 'Cannot reach the main PC — check the link/WiFi.'; document.getElementById('e').style.display = 'block'; });
     };
@@ -41,7 +42,7 @@ export function installWebApi() {
 
   const apiFetch = (url, opts = {}) => fetch(url, {
     ...opts,
-    headers: { ...(opts.headers || {}), 'x-medora-token': token() }
+    headers: { ...(opts.headers || {}), 'x-clinory-token': token() }
   }).then(r => { if (r.status === 401) { showGate(); throw new Error('auth'); } return r; });
 
   const dl = (text, name) => {

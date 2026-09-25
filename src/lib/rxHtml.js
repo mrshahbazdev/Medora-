@@ -44,7 +44,7 @@ export function rxDocument({ store, patient, visit }) {
     .filter(Boolean);
 
   // Pre-printed letterhead mode: the clinic's own printed pad carries the
-  // header — Medora just leaves topMm mm of space and starts the Rx below it.
+  // header — Clinory just leaves topMm mm of space and starts the Rx below it.
   const headerHtml = st.letterhead?.prePrinted
     ? `<div style="height:${Number(st.letterhead.topMm) || 40}mm"></div>`
     : `<div class="rxhead ${st.template}"${st.letterhead?.accent ? ` style="border-color:${st.letterhead.accent}"` : ''}>

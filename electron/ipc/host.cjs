@@ -10,10 +10,10 @@ const { serveDoc, mergeSave, loadDoc, listRows, getRow, putRow, patchRow, delete
 
 function notifyRenderer() {
   const w = BrowserWindow.getAllWindows()[0];
-  if (w) w.webContents.send('medora:sync-apply', loadDoc());
+  if (w) w.webContents.send('clinory:sync-apply', loadDoc());
 }
 
-// LAN host mode (OPT-IN): when enabled in Settings, this PC serves Medora to
+// LAN host mode (OPT-IN): when enabled in Settings, this PC serves Clinory to
 // other devices on the same WiFi. Every /api call requires the access code
 // shown on this PC — without it the patient database stays private.
 const HOST_PORT = 47071;
@@ -56,11 +56,11 @@ function startServer() {
     const parsed = new URL(req.url || '/', 'http://x');
     const url = parsed.pathname;
     try {
-      if (url === '/api/ping') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true,"app":"medora"}'); return; }
+      if (url === '/api/ping') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true,"app":"clinory"}'); return; }
 
       if (url.startsWith('/api/')) {
         // Access code accepted via header only — never the URL (browser history).
-        const tok = req.headers['x-medora-token'] || '';
+        const tok = req.headers['x-clinory-token'] || req.headers['x-medora-token'] || '';
         if (!codeEq(tok, lanCode())) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid access code"}'); return; }
 
         if (url === '/api/store') {

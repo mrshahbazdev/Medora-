@@ -4,12 +4,14 @@ const crypto = require('crypto');
 const { app, safeStorage } = require('electron');
 
 // Encrypted-at-rest document IO. The store file is safeStorage-encrypted
-// (DPAPI on Windows, Keychain on macOS); older plaintext medora.json files
+// (DPAPI on Windows, Keychain on macOS); older plaintext clinory.json files
 // are migrated transparently on first load. If encryption is unavailable
 // (headless Linux), we still write — marked unencrypted.
-const ENC_TAG = 'MEDORA1:';
+const ENC_TAG = 'CLINORY1:';
+const ENC_TAG_OLD = 'MEDORA1:'; // files written before the rebrand
 
-function docPath() { return path.join(app.getPath('userData'), 'medora.json'); }
+function docPath() { return path.join(app.getPath('userData'), 'clinory.json'); }
+function docPathOld() { return path.join(app.getPath('userData'), 'medora.json'); }
 
 function atomicWrite(file, text) {
   const tmp = `${file}.${crypto.randomBytes(6).toString('hex')}.tmp`;
@@ -18,14 +20,19 @@ function atomicWrite(file, text) {
 }
 
 function readDoc() {
-  try {
-    const raw = fs.readFileSync(docPath(), 'utf8');
-    if (raw.startsWith(ENC_TAG)) {
-      const dec = safeStorage.decryptString(Buffer.from(raw.slice(ENC_TAG.length), 'base64'));
-      return JSON.parse(dec);
-    }
-    return JSON.parse(raw); // legacy plaintext — encrypts on next save
-  } catch { return null; }
+  for (const p of [docPath(), docPathOld()]) {
+    try {
+      const raw = fs.readFileSync(p, 'utf8');
+      for (const tag of [ENC_TAG, ENC_TAG_OLD]) {
+        if (raw.startsWith(tag)) {
+          const dec = safeStorage.decryptString(Buffer.from(raw.slice(tag.length), 'base64'));
+          return JSON.parse(dec);
+        }
+      }
+      return JSON.parse(raw); // legacy plaintext — encrypts on next save
+    } catch { /* try the next name */ }
+  }
+  return null;
 }
 
 function requireEnc() {

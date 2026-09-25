@@ -11,6 +11,20 @@ const { registerHostIPC } = require('./ipc/host.cjs');
 const isDev = !app.isPackaged;
 let mainWindow = null;
 
+// Rebrand migration: installs created as "Medora" keep their data under
+// %APPDATA%/Medora. If the new Clinory folder doesn't exist yet but the old
+// one does, copy it across so nothing is lost on upgrade.
+(function migrateUserDataDir() {
+  try {
+    const base = app.getPath('appData');
+    const oldDir = path.join(base, 'Medora');
+    const newDir = path.join(base, 'Clinory');
+    if (fs.existsSync(oldDir) && !fs.existsSync(newDir)) {
+      fs.cpSync(oldDir, newDir, { recursive: true });
+    }
+  } catch { /* best-effort */ }
+})();
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -81,7 +95,7 @@ function createWindow() {
     minHeight: 700,
     autoHideMenuBar: true,
     show: false,
-    title: 'Medora',
+    title: 'Clinory',
     backgroundColor: '#f1f5f9',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

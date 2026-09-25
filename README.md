@@ -1,4 +1,4 @@
-# Medora
+# Clinory
 
 Offline prescription pad and patient register for clinics. Write a bilingual (English + Urdu) prescription in seconds, keep every visit on file, run a daily patient queue — with no account, no internet, nothing leaving the machine.
 

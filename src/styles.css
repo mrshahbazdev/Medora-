@@ -136,7 +136,7 @@ input.in.num { width: 90px; }
 }
 
 
-/* ============ Medora — medical design system ============ */
+/* ============ Clinory — medical design system ============ */
 :root {
   --bg: #f0fdfa;
   --panel: #ffffff;
@@ -287,7 +287,7 @@ body { font-size: 14px; line-height: 1.5; background: var(--bg); color: var(--in
 .tvmut { color: #5eead4; font-size: 18px; }
 
 /* ================================================================
-   Medora — visual refresh v2: deep-navy clinical EMR
+   Clinory — visual refresh v2: deep-navy clinical EMR
    ================================================================ */
 :root {
   --bg: #eef2f7;
@@ -406,7 +406,7 @@ body { background: var(--bg); font-family: 'Inter', 'Segoe UI', system-ui, sans-
   background: #c3cfe0; border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
 
 /* ================================================================
-   Medora — UI polish v3: page headers, toolbars, empty states
+   Clinory — UI polish v3: page headers, toolbars, empty states
    ================================================================ */
 
 /* section/page titles with accent bar */

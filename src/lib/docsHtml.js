@@ -458,7 +458,7 @@ export const cashHandoverHtml = ({ store, date, fees, expenses, opening = 0 }) =
     ${expRows ? `<table style="margin-top:1mm;border-top:1px dashed #888">${expRows}</table>` : ''}
     <div class="big">HANDOVER — Rs ${(opening || 0) + fees - (expenses || []).reduce((t, e) => t + (Number(e.amount) || 0), 0)}</div>
     <table><tr><td>Cashier sign: __________</td><td class="r">Received by: __________</td></tr></table>
-    <p style="text-align:center;margin-top:2mm">Medora — cash day end</p>
+    <p style="text-align:center;margin-top:2mm">Clinory — cash day end</p>
   </body></html>`;
 };
 
@@ -650,6 +650,6 @@ export const trendChartHtml = ({ store, patient }) => {
     : '<p class="muted">Not enough vitals recorded yet — chart appears after 2+ visits with vitals.</p>'}
     <table><thead><tr><th>Date</th><th>BP</th><th>Pulse</th><th>Wt kg</th><th>Temp</th><th>SpO2</th><th>Diagnosis</th></tr></thead><tbody>${tableRows || '<tr><td colspan="7">No visits</td></tr>'}</tbody></table>
     ${sugarRows ? `<table><thead><tr><th>Date</th><th>Test</th><th>Result</th></tr></thead><tbody>${sugarRows}</tbody></table>` : ''}
-    <p class="muted" style="margin-top:4mm">Trends for clinical review — not diagnostic. Printed from Medora.</p>
+    <p class="muted" style="margin-top:4mm">Trends for clinical review — not diagnostic. Printed from Clinory.</p>
   </body></html>`;
 };

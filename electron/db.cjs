@@ -7,13 +7,13 @@ const { readDoc, hashPins } = require('./ipc/doc-io.cjs');
 
 /**
  * SQLite document store (better-sqlite3-multiple-ciphers → SQLCipher).
- * - medora.db lives in userData, encrypted with a random key (the key itself is
+ * - clinory.db lives in userData, encrypted with a random key (the key itself is
  *   wrapped by OS safeStorage / DPAPI and kept in db.key next to the database).
  * - WAL + foreign keys on; every write is record-level inside one transaction.
  * - mergeSave diffs the client's doc against the doc that client last loaded
  *   (tracked by rev) and applies ONLY the rows that client changed — so a
  *   receptionist and a doctor on different PCs no longer overwrite each other.
- * - Never put medora.db on a network share: SMB locking corrupts SQLite. The
+ * - Never put clinory.db on a network share: SMB locking corrupts SQLite. The
  *   multi-PC path stays host + HTTP.
  */
 
@@ -67,7 +67,17 @@ function openDb() {
   if (app.isPackaged && !safeStorage.isEncryptionAvailable()) {
     throw new Error('OS encryption unavailable — cannot open encrypted patient database');
   }
-  db = new Database(path.join(app.getPath('userData'), 'medora.db'));
+  // Rebrand migration: adopt the old medora.db (+ sidecar files) if the new
+  // clinory.db hasn't been created yet.
+  const dir = app.getPath('userData');
+  const newDb = path.join(dir, 'clinory.db');
+  const oldDb = path.join(dir, 'medora.db');
+  if (!fs.existsSync(newDb) && fs.existsSync(oldDb)) {
+    for (const f of ['medora.db', 'medora.db-wal', 'medora.db-shm', 'medora.db-journal']) {
+      try { fs.renameSync(path.join(dir, f), path.join(dir, f.replace('medora', 'clinory'))); } catch {}
+    }
+  }
+  db = new Database(newDb);
   db.pragma(`key='${keyForDb()}'`);
   db.exec(TABLES);
   revCounter = Number((db.prepare(`SELECT v FROM meta WHERE k='rev'`).get() || {}).v || 0);
@@ -75,7 +85,7 @@ function openDb() {
   return db;
 }
 
-// ---- migration: one-shot import of the legacy medora.json ----
+// ---- migration: one-shot import of the legacy clinory.json ----
 function migrateFromJson() {
   const done = (db.prepare(`SELECT v FROM meta WHERE k='migrated'`).get() || {}).v;
   if (done) return;
@@ -87,8 +97,8 @@ function migrateFromJson() {
     if (doc.updatedAt) db.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES ('updatedAt', ?)`).run(String(doc.updatedAt));
     try {
       fs.renameSync(
-        path.join(app.getPath('userData'), 'medora.json'),
-        path.join(app.getPath('userData'), 'medora.json.migrated')
+        path.join(app.getPath('userData'), 'clinory.json'),
+        path.join(app.getPath('userData'), 'clinory.json.migrated')
       );
     } catch {}
   }

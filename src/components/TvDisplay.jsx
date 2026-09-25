@@ -28,7 +28,7 @@ export default function TvDisplay() {
     const iv = setInterval(load, 3000);
     return () => clearInterval(iv);
   }, []);
-  if (!store) return <div className="tvroot"><div className="tvbrand">Medora</div><div className="tvmut">Waiting for data…</div></div>;
+  if (!store) return <div className="tvroot"><div className="tvbrand">Clinory</div><div className="tvmut">Waiting for data…</div></div>;
 
   const today = new Date().toISOString().slice(0, 10);
   const queue = (store.queue || []).filter(q => q.at === today && q.status !== 'done').sort((a, b) => (a.tokenNo || 0) - (b.tokenNo || 0));

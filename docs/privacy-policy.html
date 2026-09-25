@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinory — Privacy Policy</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 48px auto; padding: 0 20px; color: #1e293b; line-height: 1.7; }
+  h1 { color: #0f2a44; } h2 { color: #0f2a44; font-size: 19px; margin-top: 32px; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; }
+  .muted { color: #64748b; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>Clinory — Privacy Policy</h1>
+<p class="muted">Last updated: September 2026</p>
+
+<p>Clinory is an offline prescription pad and patient register for small clinics, published by Muhammad Shahbaz. This policy explains what the app stores, where it stores it, and what it does not do.</p>
+
+<h2>What the app stores</h2>
+<p>Clinory stores the patient records your clinic enters: patient demographics (names, ages, phone numbers, photos), visit notes, prescriptions, vitals, lab results, appointments, billing entries and staff accounts.</p>
+
+<h2>Where it is stored</h2>
+<p>All of this data lives <b>only on the computer where the app is installed</b> — nothing else. It is encrypted at rest: the patient database uses SQLCipher (<code>clinory.db</code>) and document backups are encrypted through the operating system (DPAPI on Windows). There is no cloud copy.</p>
+
+<h2>What the app does not do</h2>
+<ul>
+  <li>No account, no sign-in to any online service.</li>
+  <li>No analytics, no telemetry, no advertising.</li>
+  <li>The app makes <b>no internet requests</b> and sends nothing anywhere.</li>
+</ul>
+
+<h2>Optional local-network sharing</h2>
+<p>Clinory can optionally share records with other computers <b>on the same local network only</b> (Settings → Local connection). This feature is <b>off by default</b>. When enabled it is protected by an access code shown on the host computer, can be turned off at any time, and can be rotated (Settings → Regenerate). Data stays on your own machines — the feature makes no internet requests either.</p>
+
+<h2>Export and deletion</h2>
+<p>You can export all records at any time (Backup / CSV / Excel on the title bar) and restore them later. "Reset — delete all data" in Settings permanently removes every record from the computer. Uninstalling the app leaves the data folder behind; delete <code>%APPDATA%\Clinory</code> to remove it fully.</p>
+
+<h2>Your responsibilities</h2>
+<p>The clinic using Clinory is the data controller for its patient records. You are responsible for lawful handling of patient data under your local law, for keeping backups (Settings → backup folder), and for controlling physical access to the computer.</p>
+
+<h2>Clinical disclaimer</h2>
+<p>Clinory is a record-keeping and printing tool for qualified medical practitioners. It does not provide medical advice, diagnosis or treatment recommendations. Allergy and interaction warnings are a limited convenience check, not a substitute for clinical judgement or a full drug-interaction database. The prescriber is responsible for every prescription issued.</p>
+
+<h2>Contact</h2>
+<p>Questions: <a href="mailto:mrshahbaznns@gmail.com">mrshahbaznns@gmail.com</a></p>
+</body>
+</html>

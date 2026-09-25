@@ -1,6 +1,6 @@
 {
- "name": "medora",
- "productName": "Medora",
+ "name": "clinory",
+ "productName": "Clinory",
  "description": "Offline prescription pad and patient register for clinics — write Rx in seconds, keep every visit on file, print bilingual prescriptions. No account, no internet.",
  "author": {
   "name": "Muhammad Shahbaz",
@@ -19,8 +19,8 @@
   "dist:win": "npm run build && electron-builder --win --x64"
  },
  "build": {
-  "appId": "com.shahbaz.medora",
-  "productName": "Medora",
+  "appId": "com.shahbaz.clinory",
+  "productName": "Clinory",
   "copyright": "Copyright © 2026 Muhammad Shahbaz",
   "asar": true,
   "asarUnpack": [
@@ -58,8 +58,8 @@
    "icon": "build/icon.ico"
   },
   "appx": {
-   "applicationId": "Medora",
-   "displayName": "Medora",
+   "applicationId": "Clinory",
+   "displayName": "Clinory",
    "identityName": "FROM_PARTNER_CENTER",
    "publisher": "CN=FROM_PARTNER_CENTER",
    "publisherDisplayName": "Muhammad Shahbaz",

@@ -77,7 +77,7 @@ export default function App() {
       window.api.store.save(store);
       if (store.settings.syncFolder) {
         const text = JSON.stringify(store);
-        window.api.export.toFolder({ folder: store.settings.syncFolder, name: 'medora-sync.json', text });
+        window.api.export.toFolder({ folder: store.settings.syncFolder, name: 'clinory-sync.json', text });
         syncText.current = text;
       }
       if (store.settings.syncAuto !== false) window.api.sync.publish(store);
@@ -85,7 +85,7 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [store]);
 
-  // Zero-config LAN sync: when another Medora instance on the network has a
+  // Zero-config LAN sync: when another Clinory instance on the network has a
   // newer store, apply it here automatically (no shared folder needed).
   useEffect(() => {
     if (!window.api.sync?.onApply) return;
@@ -106,7 +106,8 @@ export default function App() {
     const t = setInterval(async () => {
       const folder = store?.settings?.syncFolder;
       if (!folder || store?.settings?.syncAuto === false) return;
-      const res = await window.api.export.readFromFolder({ folder, name: 'medora-sync.json' }).catch(() => null);
+      let res = await window.api.export.readFromFolder({ folder, name: 'clinory-sync.json' }).catch(() => null);
+      if (!res?.ok || !res.text) res = await window.api.export.readFromFolder({ folder, name: 'medora-sync.json' }).catch(() => null);
       if (!res?.ok || !res.text) return;
       if (res.text === syncText.current || res.text === JSON.stringify(store)) return;
       try {
@@ -145,18 +146,18 @@ export default function App() {
 
   const exportAllJson = () => {
     const json = JSON.stringify(store, null, 2);
-    window.api.export.json({ json, suggestedName: 'medora-backup.json' });
+    window.api.export.json({ json, suggestedName: 'clinory-backup.json' });
     if (store.settings.backupFolder)
-      window.api.export.toFolder({ folder: store.settings.backupFolder, name: `medora-backup-${new Date().toISOString().slice(0, 10)}.json`, text: json });
+      window.api.export.toFolder({ folder: store.settings.backupFolder, name: `clinory-backup-${new Date().toISOString().slice(0, 10)}.json`, text: json });
     update(s => s.settings.lastBackupAt = new Date().toISOString().slice(0, 10));
   };
-  const exportAllCsv = () => window.api.export.text({ text: exportCsv(store), suggestedName: 'medora-patients.csv' });
+  const exportAllCsv = () => window.api.export.text({ text: exportCsv(store), suggestedName: 'clinory-patients.csv' });
   const importJson = async () => {
     const f = await window.api.app.openFile({ filters: [{ name: 'JSON', extensions: ['json'] }] });
     if (!f?.text) return;
     try {
       const parsed = JSON.parse(f.text);
-      if (!parsed.patients) throw new Error('not a Medora backup');
+      if (!parsed.patients) throw new Error('not a Clinory backup');
       await window.api.store.snapshot(store, 'before import');
       setStore({ ...emptyStore(), ...parsed });
     } catch (e) { alert('Could not import: ' + e.message); }
@@ -181,7 +182,7 @@ export default function App() {
   return (
     <div className="app" dir={ur ? 'rtl' : 'ltr'}>
       <aside className="side">
-        <div className="sbrand"><span className="smark">✚</span><div><div className="sname">Medora</div><div className="ssub">Clinic OS</div></div></div>
+        <div className="sbrand"><span className="smark">✚</span><div><div className="sname">Clinory</div><div className="ssub">Clinic OS</div></div></div>
         {navForUser.map(g => (
           <div key={g.sec} className="sgrp">
             <div className="ssec">{ur ? (g.secUr || g.sec) : g.sec}</div>
@@ -212,7 +213,7 @@ export default function App() {
               </select>)}
             {reception && <span className="opd" style={{ background: '#fde68a', color: '#92400e' }}>Receptionist</span>}
             {store.settings.syncAuto !== false && (
-              <span className="opd" title="Auto-sync on — updates move between Medora apps on this WiFi/LAN automatically"
+              <span className="opd" title="Auto-sync on — updates move between Clinory apps on this WiFi/LAN automatically"
                 style={Date.now() - syncFlash < 8000 ? { background: '#bbf7d0', color: '#166534' } : { background: '#e0f2fe', color: '#0369a1' }}>
                 ↻ Live sync
               </span>)}
@@ -231,18 +232,22 @@ export default function App() {
 
       {firstRun && (
         <div className="welcome">
-          <h1>Welcome to Medora</h1>
+          <h1>Welcome to Clinory</h1>
           <p>A sample clinic (Dr. Ayesha Khan, City Care Clinic) with 8 patients, 4 visits and a full medicine library is loaded so you can try everything — write a prescription, print it, work through today's queue.</p>
           <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, maxWidth: 560 }}>
-            <b>Your consent & privacy:</b> by using Medora you agree that patient health data (names, diagnoses,
+            <b>Your consent & privacy:</b> by using Clinory you agree that patient health data (names, diagnoses,
             prescriptions, visits) is entered and stored <b>only on this computer</b> — encrypted at rest.
-            Nothing is uploaded or shared unless you turn on Local connection yourself. Medora is a
-            record-keeping and printing tool — <b>not clinical decision support</b>; the treating doctor
-            remains responsible for every medical decision.
+            Nothing is uploaded anywhere; the app makes no internet connection, and LAN sharing stays off
+            unless you turn it on. You are responsible for backups and for the lawful handling of these records.<br/><br/>
+            Clinory is a record-keeping and printing tool for qualified medical practitioners. It does not
+            provide medical advice, diagnosis or treatment recommendations. Allergy and interaction warnings
+            are a limited convenience check, not a substitute for clinical judgement or a full drug-interaction
+            database. Preset doses are defaults for editing, not recommendations. The prescriber is
+            responsible for every prescription issued.
           </p>
           <div className="welcome-actions">
-            <button className="btn" onClick={() => update(s => { s.settings.firstRunDone = true; })}>Explore sample data</button>
-            <button className="btn ghost" onClick={() => { setStore(emptyStore()); setTab('settings'); }}>Start blank — set up my clinic</button>
+            <button className="btn" onClick={() => update(s => { s.settings.firstRunDone = true; s.settings.consent = { at: new Date().toISOString(), version }; })}>I accept — explore sample data</button>
+            <button className="btn ghost" onClick={() => { setStore({ ...emptyStore(), settings: { ...emptyStore().settings, firstRunDone: true, consent: { at: new Date().toISOString(), version } } }); setTab('settings'); }}>I accept — start blank, set up my clinic</button>
           </div>
         </div>
       )}
@@ -260,7 +265,7 @@ export default function App() {
         {tab === 'stats' && <StatsPanel store={store} update={update} />}
         {tab === 'settings' && <SettingsPanel store={store} update={update} setStore={setStore} />}
         </main>
-        <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Data is encrypted on this computer. Not clinical decision support.</footer>
+        <footer className="foot">Clinory v{version} — offline patient register &amp; prescription pad. Data is encrypted on this computer. Not clinical decision support.</footer>
       </div>
     </div>
   );

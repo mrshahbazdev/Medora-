@@ -64,7 +64,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               return `<tr><td>${esc(p.mrn)}</td><td>${esc(p.name)}</td><td>${esc(p.age)} ${esc(p.ageUnit)}</td><td>${esc(p.gender)}</td><td>${esc(p.phone)}</td><td>${esc(p.chronic)}</td><td>${vs.length}</td><td>${vs.reduce((t, v) => t + (Number(v.fee) || 0), 0)}</td></tr>`;
             }).join('');
             const xls = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><meta charset="utf-8"><table><tr><th>MRN</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Chronic</th><th>Visits</th><th>Fees Rs</th></tr>${rows}</table></html>`;
-            await window.api.export.toFolder({ folder: '', name: 'medora-patients.xls', text: xls });
+            await window.api.export.toFolder({ folder: '', name: 'clinory-patients.xls', text: xls });
             alert('Excel file saved to export folder.');
           }}>Excel</button>
         </div>
@@ -141,7 +141,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               <button className="btn small ghost" title="Export this patient's full record as an HTML file" onClick={async () => {
                 const esc = x => String(x || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
                 const rows = visits.slice().reverse().map(v => `<tr><td>${esc(v.date)}</td><td>${esc(v.complaint)}</td><td>${esc(v.diagnosis)}</td><td>${esc((v.items || []).map(i => i.name).join(', '))}</td><td>Rs ${esc(v.fee)}</td></tr>`).join('');
-                const html = `<!doctype html><meta charset="utf-8"><title>${esc(patient.name)} — record</title><style>body{font-family:Arial;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left}</style><h2>${esc(store.settings.clinicName || 'Clinic')} — Patient record</h2><p><b>${esc(patient.name)}</b> · ${esc(ageText(patient))} · MRN ${esc(patient.mrn)} · ${esc(patient.phone)}<br>Allergies: ${esc(patient.allergies)} · Chronic: ${esc(patient.chronic)}</p><table><tr><th>Date</th><th>Complaint</th><th>Diagnosis</th><th>Medicines</th><th>Fee</th></tr>${rows}</table><p style="color:#888;font-size:11px">Exported from Medora — offline record.</p>`;
+                const html = `<!doctype html><meta charset="utf-8"><title>${esc(patient.name)} — record</title><style>body{font-family:Arial;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left}</style><h2>${esc(store.settings.clinicName || 'Clinic')} — Patient record</h2><p><b>${esc(patient.name)}</b> · ${esc(ageText(patient))} · MRN ${esc(patient.mrn)} · ${esc(patient.phone)}<br>Allergies: ${esc(patient.allergies)} · Chronic: ${esc(patient.chronic)}</p><table><tr><th>Date</th><th>Complaint</th><th>Diagnosis</th><th>Medicines</th><th>Fee</th></tr>${rows}</table><p style="color:#888;font-size:11px">Exported from Clinory — offline record.</p>`;
                 await window.api.export.toFolder({ folder: '', name: `${patient.mrn || 'record'}-${patient.name.replace(/[^a-z0-9]+/gi, '-')}.html`, text: html });
                 alert('Saved to app export folder.');
               }}>Export history</button>
