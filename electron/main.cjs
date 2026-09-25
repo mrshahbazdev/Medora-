@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { app, BrowserWindow, session, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, session, ipcMain, shell, dialog, Menu } = require('electron');
 
 const { registerStoreIPC } = require('./ipc/store.cjs');
 const { registerExportIPC } = require('./ipc/export.cjs');
@@ -69,11 +69,13 @@ function saveState() {
 
 function createWindow() {
   const state = loadState();
+  Menu.setApplicationMenu(null);
 
   mainWindow = new BrowserWindow({
     ...state,
     minWidth: 1100,
     minHeight: 700,
+    autoHideMenuBar: true,
     show: false,
     title: 'Medora',
     backgroundColor: '#f1f5f9',
