@@ -105,7 +105,21 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
                 });
                 setPatientId(to.id);
               }}>Merge</button>
+              <button className="btn small ghost" title="Export this patient's full record as an HTML file" onClick={async () => {
+                const esc = x => String(x || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+                const rows = visits.slice().reverse().map(v => `<tr><td>${esc(v.date)}</td><td>${esc(v.complaint)}</td><td>${esc(v.diagnosis)}</td><td>${esc((v.items || []).map(i => i.name).join(', '))}</td><td>Rs ${esc(v.fee)}</td></tr>`).join('');
+                const html = `<!doctype html><meta charset="utf-8"><title>${esc(patient.name)} — record</title><style>body{font-family:Arial;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left}</style><h2>${esc(store.settings.clinicName || 'Clinic')} — Patient record</h2><p><b>${esc(patient.name)}</b> · ${esc(ageText(patient))} · MRN ${esc(patient.mrn)} · ${esc(patient.phone)}<br>Allergies: ${esc(patient.allergies)} · Chronic: ${esc(patient.chronic)}</p><table><tr><th>Date</th><th>Complaint</th><th>Diagnosis</th><th>Medicines</th><th>Fee</th></tr>${rows}</table><p style="color:#888;font-size:11px">Exported from Medora — offline record.</p>`;
+                await window.api.export.toFolder({ folder: '', name: `${patient.mrn || 'record'}-${patient.name.replace(/[^a-z0-9]+/gi, '-')}.html`, text: html });
+                alert('Saved to app export folder.');
+              }}>Export history</button>
               <button className="icon" onClick={() => delPatient(patient.id)} aria-label="Delete patient">✕</button>
+            </div>
+            {(() => {
+              const fam = store.patients.filter(x => x.id !== patient.id && (x.familyId === patient.id || (patient.familyId && x.familyId === patient.familyId) || x.id === patient.familyId));
+              if (!fam.length) return null;
+              return <div className="muted" style={{ margin: '4px 0 10px' }}>👪 Family: {fam.map(x => <a key={x.id} href="#" onClick={e => { e.preventDefault(); setPatientId(x.id); }}>{x.name}</a>).reduce((a, b) => [a, ', ', b])}</div>;
+            })()}
+            <div>
             </div>
 
             {patient.allergies && <div className="allergy">⚠ Allergy: {patient.allergies}</div>}
@@ -132,10 +146,15 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
                 </select>
                 <input className="in" value={patient.phone} placeholder="Phone" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).phone = e.target.value; })} />
                 <input className="in num" value={patient.height} placeholder="Ht (cm)" title="Height in cm" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).height = e.target.value; })} />
+                <input className="in" type="date" style={{ width: 140 }} value={patient.dob || ''} title="Date of birth (for growth chart)" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).dob = e.target.value; })} />
               </div>
               <div className="frow">
                 <input className="in" style={{ flex: 1 }} value={patient.chronic} placeholder="Chronic conditions — HTN, DM, asthma…" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).chronic = e.target.value; })} />
                 <input className="in" value={patient.referredBy} placeholder="Referred by (doctor/clinic)" title="Referring doctor or clinic" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).referredBy = e.target.value; })} />
+                <select className="in" value={patient.familyId || ''} title="Family group head" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).familyId = e.target.value; })}>
+                  <option value="">Family head — none</option>
+                  {store.patients.filter(x => x.id !== patient.id).map(x => <option key={x.id} value={x.id}>{x.name} (MRN {x.mrn})</option>)}
+                </select>
               </div>
               <div className="frow">
                 <input className="in" style={{ flex: 1 }} value={patient.address} placeholder="Address" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).address = e.target.value; })} />
@@ -143,6 +162,35 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               </div>
               <textarea className="in" rows={2} value={patient.notes} placeholder="Notes — chronic conditions, long-term meds…" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).notes = e.target.value; })} />
             </div>
+
+            {(() => {
+              const pts = patientVisits(store, patient.id).map(v => ({ d: v.date, w: Number(v.vitals?.weight) })).filter(x => x.w).reverse();
+              if (pts.length < 2) return null;
+              const isBoy = (patient.gender || '').toLowerCase().startsWith('m');
+              // WHO weight-for-age reference (boys/girls median & ±2SD, months → kg)
+              const MED = { 0: 3.3, 6: 7.9, 12: 9.6, 18: 10.9, 24: 12.2, 36: 14.3, 48: 16.3, 60: 18.3 };
+              const ref = m => { const ks = Object.keys(MED).map(Number); const k = ks.reduce((a, b) => Math.abs(b - m) < Math.abs(a - m) ? b : a); return MED[k]; };
+              const ageMonths = p => { if (!p.dob) return null; return Math.max(0, (Date.now() - new Date(p.dob)) / 2592000000); };
+              const am = ageMonths(patient);
+              const all = pts.map(x => x.w);
+              const max = Math.max(...all, am ? ref(am) * 1.3 : 0) * 1.08, min = Math.min(...all) * 0.85;
+              const W = 320, H = 110, X = i => 30 + i * ((W - 40) / Math.max(1, pts.length - 1)), Y = w => H - 8 - ((w - min) / (max - min)) * (H - 20);
+              const line = pts.map((x, i) => `${X(i)},${Y(x.w)}`).join(' ');
+              const band = am != null ? [30 + 0, 30 + (W - 40)] : null;
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <h3 className="ptitle">Weight trend {am != null && am <= 60 ? `(WHO ${isBoy ? 'boys' : 'girls'} ref: median ${ref(am)}kg, band ${Math.round(ref(am) * 0.85)}–${Math.round(ref(am) * 1.15)}kg)` : ''}</h3>
+                  <svg width={W} height={H} style={{ background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 8 }}>
+                    {am != null && am <= 60 && [0.85, 1, 1.15].map((f, i) => (
+                      <line key={i} x1={30} x2={W - 10} y1={Y(ref(am) * f)} y2={Y(ref(am) * f)} stroke={i === 1 ? '#0d9488' : '#cbd5e1'} strokeDasharray={i === 1 ? '' : '4 3'} strokeWidth={i === 1 ? 1.5 : 1} />
+                    ))}
+                    <polyline points={line} fill="none" stroke="#f59e0b" strokeWidth="2" />
+                    {pts.map((x, i) => <circle key={i} cx={X(i)} cy={Y(x.w)} r="3" fill="#f59e0b"><title>{x.d}: {x.w}kg</title></circle>)}
+                    <text x={4} y={Y(max / 1.08) + 10} fontSize="8" fill="#94a3b8">kg</text>
+                  </svg>
+                </div>
+              );
+            })()}
 
             <h3 className="ptitle">Visit history</h3>
             <div className="tl">

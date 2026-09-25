@@ -36,6 +36,11 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
       </div>
 
       {(() => {
+        const soon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+        const expiring = (store.medicines || []).filter(m => m.expiry && m.expiry <= soon);
+        return expiring.length ? <div className="warn" style={{ marginBottom: 14 }}>🧾 {expiring.length} medicine(s) expiring within 30 days: {expiring.slice(0, 6).map(m => `${m.name} (${m.expiry})`).join(', ')}{expiring.length > 6 ? '…' : ''}</div> : null;
+      })()}
+      {(() => {
         const ancDue = [];
         store.patients.forEach(p => {
           const lv = patientVisits(store, p.id).filter(v => v.anc?.edd).sort((a, b) => b.date.localeCompare(a.date))[0];
@@ -70,6 +75,25 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
           </div>
         );
       })}
+
+      <h2 className="ptitle">This week's appointments</h2>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {[0, 1, 2, 3, 4, 5, 6].map(i => {
+          const d = new Date(Date.now() + i * 86400000).toISOString().slice(0, 10);
+          const day = (store.appointments || []).filter(a => a.date === d);
+          return (
+            <div key={d} style={{ minWidth: 110, flex: 1, border: '1px solid var(--line)', borderRadius: 10, padding: 8, background: i === 0 ? '#f0fdfa' : 'var(--card)' }}>
+              <div className="muted" style={{ fontSize: 11, fontWeight: 700 }}>{new Date(d).toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+              {day.length === 0 && <div className="muted" style={{ fontSize: 11 }}>—</div>}
+              {day.map(a => {
+                const p = store.patients.find(x => x.id === a.patientId);
+                const clash = day.filter(x => x !== a && x.doctorId === a.doctorId).length > 0;
+                return <div key={a.id} style={{ fontSize: 11, marginTop: 4 }}>• {p ? p.name : '?'} {clash && <span style={{ color: '#dc2626' }} title="Possible double-booking">⚠</span>}</div>;
+              })}
+            </div>
+          );
+        })}
+      </div>
 
       <h2 className="ptitle">Appointments due</h2>
       {(store.appointments || []).filter(a => a.date <= t).length === 0 ? (

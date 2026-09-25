@@ -59,8 +59,8 @@ export function defaultSettings() {
 export function newPatient() {
   return {
     id: uid(), mrn: '', name: '', age: '', ageUnit: 'years',
-    gender: '', phone: '', address: '', allergies: '', notes: '',
-    height: '', chronic: '', photoDataUrl: '', referredBy: '',
+    gender: '', phone: '', address: '', dob: '', allergies: '', notes: '',
+    height: '', chronic: '', photoDataUrl: '', referredBy: '', familyId: '',
     createdAt: new Date().toISOString()
   };
 }

@@ -49,6 +49,15 @@ export default function VaccinesPanel({ store, update }) {
           {(childPatients.length ? childPatients : store.patients).map(p => <option key={p.id} value={p.id}>{p.name} · {ageText(p)}</option>)}
         </select>
         <button className="btn" onClick={() => pick && schedule(pick)}>Generate EPI schedule</button>
+        <button className="btn small ghost" onClick={() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const due = (store.vaccines || []).filter(v => !v.given && v.dueDate && v.dueDate <= today);
+          const text = 'Vaccines due:\n' + due.map(v => {
+            const p = store.patients.find(x => x.id === v.patientId);
+            return `• ${p ? p.name : v.patientId} — ${v.vaccine} (due ${v.dueDate}) ${(p && p.phone) || ''}`;
+          }).join('\n');
+          navigator.clipboard.writeText(text); alert(due.length + ' due vaccine(s) copied to clipboard.');
+        }}>Due list (copy)</button>
       </div>
 
       {due.length > 0 && (

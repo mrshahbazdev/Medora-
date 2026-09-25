@@ -55,6 +55,16 @@ export default function StatsPanel({ store, update }) {
         </tbody>
       </table>
 
+      <h3 className="ptitle">Expenses by category (P&L)</h3>
+      <table className="grid">
+        <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+        <tbody>
+          {(() => { const c = {}; (store.expenses || []).filter(e => e.date.startsWith(month)).forEach(e => { const k = e.category || 'Other'; c[k] = (c[k] || 0) + Number(e.amount || 0); });
+            const e = Object.entries(c).sort((a, b) => b[1] - a[1]);
+            return e.length ? e.map(([k, n]) => <tr key={k}><td>{k}</td><td><b>Rs {n}</b></td></tr>) : <tr><td colSpan="2" className="muted">No expenses this month.</td></tr>; })()}
+        </tbody>
+      </table>
+
       <h3 className="ptitle">Referral sources</h3>
       <table className="grid">
         <thead><tr><th>Referred by</th><th>Patients</th></tr></thead>

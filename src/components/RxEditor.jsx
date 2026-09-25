@@ -136,6 +136,10 @@ export default function RxEditor({ store, update, patient, visit, close }) {
             {RX_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
           </select>
           <button className="btn small ghost" onClick={printCert}>Sick note</button>
+          <button className="btn small ghost" title="Copy Rx text to paste in WhatsApp" onClick={() => {
+            const lines = [`${store.settings.clinicName || 'Clinic'} — ${visit.date}`, `${patient.name} (${patient.mrn || ''})`, `Dx: ${visit.diagnosis || '-'}`, ...visit.items.map(it => `• ${it.name} ${it.strength || ''} — ${it.freq || ''} x${it.days || ''}d`), ...visit.advice.map(a => `Advice: ${typeof a === 'object' ? a.en : a}`)];
+            navigator.clipboard.writeText(lines.join('\n')); alert('Copied — paste in WhatsApp.');
+          }}>WhatsApp</button>
           <button className="btn small ghost" onClick={() => window.api.export.print({ html: opdHandoutHtml({ store, patient, visit }) })}>OPD slip</button>
           {(patient.attachments || []).some(a => a.dataUrl) && <button className="btn small ghost" title="Rx + attached scans"
             onClick={() => window.api.export.print({ html: bundlePrintHtml({ store, patient, visit, rxBody: html, attachments: patient.attachments }) })}>Print bundle</button>}

@@ -1,11 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Waiting-room TV board: open on a second screen.
 // Reads the same saved store file every 3s, so it follows whatever the reception desk does.
 export default function TvDisplay() {
   const [store, setStore] = useState(null);
+  const lastServe = useRef('');
   useEffect(() => {
-    const load = () => window.api.store.load().then(d => setStore(d && Array.isArray(d.patients) ? d : null)).catch(() => {});
+    const load = () => window.api.store.load().then(d => {
+      const ok = d && Array.isArray(d.patients) ? d : null;
+      if (ok) {
+        const today = new Date().toISOString().slice(0, 10);
+        const serve = (ok.queue || []).filter(q => q.at === today && (q.status === 'in' || q.status === 'in-progress' || q.status === 'called')).map(q => q.tokenNo).join(',');
+        if (lastServe.current && serve !== lastServe.current) {
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ctx.createOscillator(); const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination); o.frequency.value = 880;
+            g.gain.setValueAtTime(0.15, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+            o.start(); o.stop(ctx.currentTime + 0.6);
+          } catch (e) {}
+        }
+        lastServe.current = serve;
+      }
+      setStore(ok);
+    }).catch(() => {});
     load();
     const iv = setInterval(load, 3000);
     return () => clearInterval(iv);
@@ -14,8 +32,7 @@ export default function TvDisplay() {
 
   const today = new Date().toISOString().slice(0, 10);
   const queue = (store.queue || []).filter(q => q.at === today && q.status !== 'done').sort((a, b) => (a.tokenNo || 0) - (b.tokenNo || 0));
-  const serving = (store.queue || []).filter(q => q.at === today && q.status === 'in').concat(
-    queue.filter(q => q.status === 'called'));
+  const serving = queue.filter(q => q.status === 'in' || q.status === 'in-progress' || q.status === 'called');
   const nextUp = queue.filter(q => q.status === 'waiting');
   const p = (id) => store.patients.find(x => x.id === id);
 

@@ -28,6 +28,7 @@ export default function DayBookPanel({ store, update }) {
   const totalExp = expenses.reduce((t, e) => t + (Number(e.amount) || 0), 0);
   const [exTitle, setExTitle] = useState('');
   const [exAmt, setExAmt] = useState('');
+  const [exCat, setExCat] = useState('Supplies');
 
   const printRegister = () => window.api.export.print({
     html: dayRegisterHtml({ store, date, rows: visits })
@@ -70,15 +71,19 @@ export default function DayBookPanel({ store, update }) {
 
       <h2 className="ptitle" style={{ marginTop: 18 }}>Expenses</h2>
       <div className="toolbar" style={{ marginBottom: 8 }}>
+        <select className="in" style={{ width: 130 }} value={exCat} onChange={e => setExCat(e.target.value)}>
+          {['Supplies', 'Rent', 'Salary', 'Utilities', 'Medicines', 'Other'].map(c => <option key={c}>{c}</option>)}
+        </select>
         <input className="in" style={{ flex: 1 }} value={exTitle} placeholder="Expense title — rent share, disposables, staff…" onChange={e => setExTitle(e.target.value)} />
         <input className="in" style={{ width: 110 }} value={exAmt} placeholder="Amount" onChange={e => setExAmt(e.target.value)} />
-        <button className="btn small" onClick={() => { if (!exTitle || !exAmt) return; update(s => (s.expenses = s.expenses || []).push({ id: uid(), date, title: exTitle, amount: exAmt })); setExTitle(''); setExAmt(''); }}>+ Add</button>
+        <button className="btn small" onClick={() => { if (!exTitle || !exAmt) return; update(s => (s.expenses = s.expenses || []).push({ id: uid(), date, title: exTitle, amount: exAmt, category: exCat })); setExTitle(''); setExAmt(''); }}>+ Add</button>
       </div>
       <table className="grid">
-        <thead><tr><th>Expense</th><th>Amount</th><th></th></tr></thead>
+        <thead><tr><th>Expense</th><th>Category</th><th>Amount</th><th></th></tr></thead>
         <tbody>
           {expenses.map(e => (
             <tr key={e.id}><td>{e.title}</td><td>Rs {e.amount}</td>
+              <td className="muted">{e.category || ''}</td>
               <td><button className="icon" onClick={() => update(s => s.expenses = (s.expenses || []).filter(x => x.id !== e.id))} aria-label="Delete expense">✕</button></td></tr>
           ))}
           {expenses.length === 0 && <tr><td colSpan="3" className="muted">No expenses on this date.</td></tr>}
