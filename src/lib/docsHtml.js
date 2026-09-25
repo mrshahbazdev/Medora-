@@ -268,3 +268,58 @@ export function monthlyReportHtml({ store, month, rows }) {
     <div style="margin-top:14mm;text-align:right;font-size:8.5pt;color:#475569">Prepared by: ______________</div>
   </div></body></html>`;
 }
+
+
+const _esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const _certCss = `
+  @page { size: A5; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+  .pg { width: 210mm; min-height: 148mm; padding: 12mm 14mm; font-size: 10pt; }
+  .hd { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 2.5mm; margin-bottom: 5mm; }
+  .hd b { font-size: 14pt; color: #134e4a; } .hd span { font-size: 8pt; color: #64748b; }
+  .body { line-height: 1.9; } .sig { margin-top: 14mm; display: flex; justify-content: space-between; font-size: 8.5pt; color: #475569; }
+`;
+
+export function fitnessCertHtml({ store, patient, purpose }) {
+  const st = store.settings;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${_certCss}</style></head><body><div class="pg">
+    <div class="hd"><b>${_esc(st.clinicName || 'Clinic')}</b><span>${_esc(st.clinicAddress || '')} · ${_esc(st.clinicPhone || '')}</span></div>
+    <h3 style="text-align:center;font-size:12pt;letter-spacing:1px;margin-bottom:4mm">MEDICAL FITNESS CERTIFICATE</h3>
+    <p class="body">This is to certify that <b>${_esc(patient.name)}</b>, ${_esc(ageText(patient))}${patient.gender ? ', ' + _esc(patient.gender) : ''} (MRN ${_esc(patient.mrn || '')}), has been examined at this clinic on <b>${new Date().toISOString().slice(0, 10)}</b> and is found medically <b>FIT</b>${purpose ? ' for <b>' + _esc(purpose) + '</b>' : ''}.</p>
+    <div class="sig"><span>MRN: ${_esc(patient.mrn || '')}</span><span>____________________<br>${_esc(st.doctorName || '')}<br>${_esc(st.qualifications || '')}</span></div>
+  </div></body></html>`;
+}
+
+export function medBillHtml({ store, patient, items, total }) {
+  const st = store.settings;
+  const rows = items.map(i => `<tr><td>${_esc(i.name)}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${i.price || ''}</td><td style="text-align:right"><b>${i.qty * (Number(i.price) || 0)}</b></td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: 80mm 200mm; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8.5pt; }
+    .b { width: 80mm; padding: 4mm; }
+    .hd { text-align: center; border-bottom: 1.5px solid #0d9488; padding-bottom: 2mm; margin-bottom: 2.5mm; }
+    table { width: 100%; border-collapse: collapse; } th { font-size: 7pt; color: #0d9488; text-align: left; border-bottom: 1px solid #cbd5e1; }
+    td { padding: 2px 2px; border-bottom: 1px dashed #e2e8f0; }
+    .tot { text-align: right; font-weight: 800; font-size: 10pt; margin-top: 2mm; }
+  </style></head><body><div class="b">
+    <div class="hd"><b>${_esc(st.clinicName || 'Clinic')} — Pharmacy</b><br><span style="font-size:6.5pt;color:#64748b">${_esc(st.clinicPhone || '')}</span></div>
+    <div style="margin-bottom:2mm">${_esc(patient.name)} · ${_esc(patient.mrn || '')} · ${new Date().toISOString().slice(0, 10)}</div>
+    <table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amt</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="tot">Total: Rs ${total}</div>
+  </div></body></html>`;
+}
+
+export function procedureNoteHtml({ store, patient, visit }) {
+  const st = store.settings;
+  const p = visit.procedure || {};
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${_certCss}
+    .row { display: flex; gap: 10mm; margin-bottom: 3mm; } .lbl { font-size: 8pt; color: #0d9488; text-transform: uppercase; letter-spacing: 0.5px; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${_esc(st.clinicName || 'Clinic')} — Procedure / OT Note</b><span>${_esc(st.clinicPhone || '')}</span></div>
+    <div class="row"><span class="lbl">Patient</span><b>${_esc(patient.name)}</b><span class="lbl">MRN</span>${_esc(patient.mrn || '')}<span class="lbl">Date</span>${_esc(visit.date)}</div>
+    <div class="row"><span class="lbl">Procedure</span><b>${_esc(p.name || visit.diagnosis || '')}</b></div>
+    <div class="row"><span class="lbl">Anesthesia</span>${_esc(p.anesthesia || '—')}<span class="lbl">Surgeon</span>${_esc(p.surgeon || st.doctorName || '')}</div>
+    <div class="lbl">Findings / notes</div><p class="body">${_esc(p.findings || visit.complaint || '')}</p>
+    <div class="sig"><span></span><span>____________________<br>${_esc(st.doctorName || '')}</span></div>
+  </div></body></html>`;
+}

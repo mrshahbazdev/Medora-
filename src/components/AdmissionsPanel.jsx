@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { newAdmission, ageText, uid } from '../lib/model.js';
 import { dischargeSummaryHtml } from '../lib/docsHtml.js';
+import { medBillHtml } from '../lib/docsHtml.js';
 
 export default function AdmissionsPanel({ store, update }) {
   const [pick, setPick] = useState('');
@@ -23,6 +24,13 @@ export default function AdmissionsPanel({ store, update }) {
       a.dischargedOn = today; a.dischargeNote = note;
     });
     window.api.export.print({ html: dischargeSummaryHtml({ store, patient, adm: { ...adm, dischargedOn: today, dischargeNote: note } }) });
+    const rate = Number((adm.ward || '').split('@')[1]) || 0;
+    const days = Math.max(1, Math.round((new Date(today) - new Date(adm.admittedOn)) / 86400000));
+    if (rate) {
+      const items = [{ name: `${adm.ward.split('@')[0].trim()} — ${days} day(s)`, qty: days, price: rate }];
+      window.api.export.print({ html: medBillHtml({ store, patient, items, total: days * rate }) });
+      update(s => { s.sales = s.sales || []; s.sales.push({ id: uid(), patientId: patient.id, date: today, items, total: days * rate, kind: 'ipd' }); });
+    }
   };
 
   const active = (store.admissions || []).filter(a => !a.dischargedOn);
@@ -39,6 +47,7 @@ export default function AdmissionsPanel({ store, update }) {
         </select>
         <select className="in" value={ward} onChange={e => setWard(e.target.value)}>
           {(store.settings.wards || []).map(w => <option key={w}>{w}</option>)}
+          {/* Ward name may carry a daily rate: "Private Room @3000" — used for the discharge bill */}
         </select>
         <input className="in" style={{ width: 90 }} value={bed} placeholder="Bed #" onChange={e => setBed(e.target.value)} />
         {(store.settings.doctors || []).length > 0 && (

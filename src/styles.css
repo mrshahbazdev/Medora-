@@ -263,3 +263,25 @@ body { font-size: 14px; line-height: 1.5; background: var(--bg); color: var(--in
 
 .gchart { background: #fff; border: 1px solid #99f6e4; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
 .gchart svg { width: 100%; height: 60px; display: block; }
+
+.pingate { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(160deg, #0f766e, #134e4a); }
+.pinbox { background: #fff; border-radius: 16px; padding: 34px 40px; text-align: center; width: 300px; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+.pmark { width: 44px; height: 44px; border-radius: 12px; background: #0d9488; color: #fff; font-size: 22px; display: grid; place-items: center; margin: 0 auto 8px; }
+.pname { font-weight: 800; font-size: 17px; color: #134e4a; margin-bottom: 4px; }
+.pinbox .pin { text-align: center; font-size: 22px; letter-spacing: 10px; width: 180px; margin: 0 auto; }
+
+.tvroot { min-height: 100vh; background: #052e2b; color: #ecfdf5; padding: 28px 36px; font-family: 'Segoe UI', Arial, sans-serif; }
+.tvtop { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #0d9488; padding-bottom: 14px; margin-bottom: 22px; }
+.tvbrand { font-size: 34px; font-weight: 800; }
+.tvtime { font-size: 26px; color: #5eead4; }
+.tvgrid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 36px; }
+.tvhead { font-size: 15px; letter-spacing: 3px; color: #5eead4; margin-bottom: 16px; }
+.tvserve { background: #0d9488; border-radius: 18px; padding: 22px 28px; margin-bottom: 16px; display: grid; grid-template-columns: auto 1fr; gap: 4px 22px; align-items: center; }
+.tvtoken { font-size: 64px; font-weight: 800; line-height: 1; grid-row: span 2; }
+.tvroom { font-size: 24px; font-weight: 700; }
+.tvname { font-size: 20px; opacity: .85; }
+.tvnext { display: flex; align-items: baseline; gap: 14px; padding: 10px 4px; border-bottom: 1px solid #115e59; }
+.tvnum { font-size: 30px; font-weight: 800; color: #5eead4; width: 60px; }
+.tvname { font-size: 20px; }
+.tvroom.small { margin-left: auto; font-size: 15px; color: #99f6e4; }
+.tvmut { color: #5eead4; font-size: 18px; }

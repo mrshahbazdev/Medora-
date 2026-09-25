@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS, RX_PRESETS, INVESTIGATION_PRESETS, INTERACTIONS } from '../lib/meds.js';
-import { medicalCertificateHtml, referralLetterHtml, followUpSms } from '../lib/docsHtml.js';
+import { medicalCertificateHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml } from '../lib/docsHtml.js';
 import { uid, ageText } from '../lib/model.js';
 import { rxDocument, rxPreviewHtml, rxCss } from '../lib/rxHtml.js';
 
@@ -127,7 +127,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
               {store.settings.doctors.map(d => <option key={d.id} value={d.id}>{d.name}{d.room ? ` (${d.room})` : ''}</option>)}
             </select>)}
           <select className="in" value={visit.type || 'opd'} onChange={e => mut(v => v.type = e.target.value)} title="Visit type">
-            <option value="opd">OPD</option><option value="eye">Eye</option><option value="dental">Dental</option><option value="anc">Antenatal</option>
+            <option value="opd">OPD</option><option value="eye">Eye</option><option value="dental">Dental</option><option value="anc">Antenatal</option><option value="procedure">Procedure / OT</option>
           </select>
           <span style={{ flex: 1 }} />
           <select className="in" defaultValue="" onChange={e => { if (e.target.value !== '') applyPreset(Number(e.target.value)); e.target.value = ''; }} title="Apply a full illness preset">
@@ -135,6 +135,23 @@ export default function RxEditor({ store, update, patient, visit, close }) {
             {RX_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
           </select>
           <button className="btn small ghost" onClick={printCert}>Sick note</button>
+          <button className="btn small ghost" onClick={() => { const pur = prompt('Fit for (e.g. job, school, travel):', 'duty'); if (pur !== null) window.api.export.print({ html: fitnessCertHtml({ store, patient, purpose: pur }) }); }}>Fitness cert</button>
+          <button className="btn small ghost" onClick={async () => {
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              const rec = new MediaRecorder(stream);
+              const chunks = [];
+              rec.ondataavailable = e => chunks.push(e.data);
+              rec.onstop = () => {
+                const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+                const fr = new FileReader();
+                fr.onload = () => mut(v => { v.voiceNote = v.voiceNote || ''; v.voiceNote = fr.result; });
+                fr.readAsDataURL(blob);
+                stream.getTracks().forEach(t => t.stop());
+              };
+              rec.start(); alert('Recording voice note — click OK to stop.'); rec.stop();
+            } catch (err) { alert('Mic not available: ' + err.message); }
+          }}>Voice note</button>
           <button className="btn small ghost" onClick={printReferral}>Referral</button>
           {visit.followUpDays && <button className="btn small ghost" onClick={copySms}>Copy SMS</button>}
           <button className="btn small ghost" onClick={delVisit}>Delete</button>
@@ -145,6 +162,8 @@ export default function RxEditor({ store, update, patient, visit, close }) {
         {allergyHit && <div className="allergy">⚠ {patient.name} is allergic to <b>{patient.allergies}</b> — {allergyHit} may conflict.</div>}
         {interactions.map(x => <div className="allergy" key={x.warn}>⚠ Interaction: {x.warn}</div>)}
 
+        {visit.voiceNote && <div className="frow" style={{ alignItems: 'center', gap: 8 }}><span className="muted">🎙 Voice note:</span><audio controls src={visit.voiceNote} style={{ height: 30 }} /></div>}
+        {visit.type === 'procedure' && <div className="frow"><button className="btn small ghost" onClick={() => window.api.export.print({ html: procedureNoteHtml({ store, patient, visit }) })}>Print procedure note</button></div>}
         <div className="form">
           <div className="frow">
             <label className="lbl" style={{ flex: 1 }}>Complaint
@@ -191,6 +210,14 @@ export default function RxEditor({ store, update, patient, visit, close }) {
                     onClick={() => mut(v => { v.dental = v.dental || []; v.dental = v.dental.includes(n) ? v.dental.filter(x => x !== n) : [...v.dental, n].sort((a, b) => a - b); })}>{n}</button>
                 ))}
               </div>
+            </div>
+          )}
+          {(visit.type === 'procedure') && (
+            <div className="frow">
+              {[['name', 'Procedure name'], ['anesthesia', 'Anesthesia'], ['surgeon', 'Surgeon'], ['findings', 'Findings / notes']].map(([k, lab]) => (
+                <label className="lbl" key={k} style={{ flex: 1 }}>{lab}
+                  <input className="in" value={visit.procedure?.[k] || ''} onChange={e => mut(v => { v.procedure = v.procedure || {}; v.procedure[k] = e.target.value; })} /></label>
+              ))}
             </div>
           )}
           {(visit.type === 'anc') && (

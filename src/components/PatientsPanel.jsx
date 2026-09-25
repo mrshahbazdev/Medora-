@@ -73,6 +73,14 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
         {patient && !rxVisit && (
           <>
             <div className="etoolbar">
+              <input className="in" style={{ width: 150 }} placeholder="Scan / MRN" title="Barcode scanner ya MRN type karke Enter"
+                onKeyDown={e => {
+                  if (e.key !== 'Enter') return;
+                  const v = e.target.value.trim();
+                  const p = store.patients.find(x => (x.mrn || '') === v || x.mrn === v.padStart(4, '0'));
+                  if (p) { setPatientId(p.id); e.target.value = ''; }
+                  else alert('No patient with MRN ' + v);
+                }} />
               <h2 style={{ margin: 0, flex: 1 }}>{patient.name} <span className="muted">MRN {patient.mrn}</span></h2>
               <button className="btn" onClick={() => newRx(patient.id)}>+ New visit / Rx</button>
               <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', note: '' }); })}>Add to today's queue</button>

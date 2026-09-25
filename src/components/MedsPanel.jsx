@@ -1,8 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { uid } from '../lib/model.js';
 import { FREQUENCIES } from '../lib/meds.js';
+import { medBillHtml } from '../lib/docsHtml.js';
 
 export default function MedsPanel({ store, update }) {
+  const sell = (m) => {
+    const qty = Number(prompt(`Quantity of ${m.name}:`, '1')) || 0;
+    if (!qty) return;
+    const price = Number(prompt(`Price per unit (Rs) — ${m.name}:`, m.price || '0')) || 0;
+    const pick = prompt('Patient name or MRN (optional):', '');
+    const patient = pick ? store.patients.find(p => p.name.toLowerCase() === pick.toLowerCase() || (p.mrn || '') === pick) : { name: pick || 'Walk-in', mrn: '' };
+    update(s => {
+      const med = s.medicines.find(x => x.id === m.id);
+      if (med.stock !== '' && med.stock != null) med.stock = Math.max(0, Number(med.stock) - qty);
+      s.sales = s.sales || [];
+      s.sales.push({ id: 'sl' + Date.now(), patientId: patient.id || '', date: new Date().toISOString().slice(0, 10), items: [{ name: m.name, qty, price }], total: qty * price, kind: 'pharmacy' });
+    });
+    window.api.export.print({ html: medBillHtml({ store, patient, items: [{ name: m.name, qty, price }], total: qty * price }) });
+  };
   const [q, setQ] = useState('');
   const today = new Date().toISOString().slice(0, 10);
   const lowStock = store.medicines.filter(m => m.stock !== '' && m.stock != null && Number(m.stock) <= 10);
@@ -28,7 +43,7 @@ export default function MedsPanel({ store, update }) {
         </div>
       )}
       <table className="grid">
-        <thead><tr><th>Brand name</th><th>Generic</th><th>Form</th><th>Strength</th><th>Default freq</th><th className="num">Days</th><th></th></tr></thead>
+        <thead><tr><th>Brand name</th><th>Generic</th><th>Form</th><th>Strength</th><th>Default freq</th><th className="num">Days</th><th className="num">Stock</th><th>Expiry</th><th>Price</th><th></th></tr></thead>
         <tbody>
           {meds.map(m => (
             <tr key={m.id}>
@@ -46,7 +61,13 @@ export default function MedsPanel({ store, update }) {
                 </select>
               </td>
               <td><input className="in num" type="number" min="0" value={m.days} onChange={e => mut(m.id, x => x.days = Number(e.target.value))} /></td>
-              <td><button className="icon" onClick={() => update(s => s.medicines = s.medicines.filter(x => x.id !== m.id))} aria-label="Delete medicine">✕</button></td>
+              <td><input className="in num" type="number" min="0" style={{ width: 62, borderColor: (m.stock !== '' && m.stock != null && Number(m.stock) <= 10) ? '#fca5a5' : undefined }} value={m.stock ?? ''} onChange={e => mut(m.id, x => x.stock = e.target.value === '' ? '' : Number(e.target.value))} /></td>
+              <td><input className="in" type="date" style={{ width: 128 }} value={m.expiry || ''} onChange={e => mut(m.id, x => x.expiry = e.target.value)} /></td>
+              <td><input className="in num" type="number" min="0" style={{ width: 70 }} value={m.price ?? ''} onChange={e => mut(m.id, x => x.price = e.target.value === '' ? '' : Number(e.target.value))} /></td>
+              <td style={{ whiteSpace: 'nowrap' }}>
+                <button className="btn small ghost" onClick={() => sell(m)}>Sell</button>
+                <button className="icon" onClick={() => update(s => s.medicines = s.medicines.filter(x => x.id !== m.id))} aria-label="Delete medicine">✕</button>
+              </td>
             </tr>
           ))}
         </tbody>

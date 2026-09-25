@@ -97,6 +97,40 @@ export default function SettingsPanel({ store, update, setStore }) {
         <button className="btn small ghost" onClick={() => mut(x => { x.branches = x.branches || []; x.branches.push({ id: 'b' + Date.now(), name: 'Branch …' }); })}>+ Branch</button>
       </div>
 
+      <h2 className="ptitle">Users &amp; PIN login</h2>
+      <p className="muted" style={{ marginTop: 0 }}>Add users to lock the app. Roles: <b>admin</b> (everything), <b>doctor</b> (no staff/settings), <b>reception</b> (only token queue + day book). Leave empty for no login.</p>
+      <table className="grid" style={{ marginBottom: 10 }}>
+        <thead><tr><th>Name</th><th>Role</th><th>PIN (4-6 digits)</th><th></th></tr></thead>
+        <tbody>
+          {(st.users || []).map(u => (
+            <tr key={u.id}>
+              <td><input className="in" value={u.name} onChange={e => mut(x => { x.users.find(z => z.id === u.id).name = e.target.value; })} /></td>
+              <td><select className="in" value={u.role} onChange={e => mut(x => { x.users.find(z => z.id === u.id).role = e.target.value; })}>
+                <option value="admin">admin</option><option value="doctor">doctor</option><option value="reception">reception</option></select></td>
+              <td><input className="in" value={u.pin} onChange={e => mut(x => { x.users.find(z => z.id === u.id).pin = e.target.value.replace(/\D/g, '').slice(0, 6); })} /></td>
+              <td><button className="icon" onClick={() => mut(x => x.users = x.users.filter(z => z.id !== u.id))}>✕</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <button className="btn small ghost" onClick={() => mut(x => { x.users = x.users || []; x.users.push({ id: 'u' + Date.now(), name: 'Dr. / staff', role: 'doctor', pin: '0000' }); })}>+ User</button>
+      </div>
+
+      <h2 className="ptitle">Sync folder (LAN / USB)</h2>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <label className="lbl" style={{ flex: 1 }}>Shared folder path — app writes <code>medora-sync.json</code> here on every save (another PC can Import it)
+          <input className="in" value={st.syncFolder || ''} placeholder="e.g. \\RECEPTION-PC\shared  ya  D:\shared" onChange={e => mut(x => x.syncFolder = e.target.value)} /></label>
+      </div>
+
+      <h2 className="ptitle">Audit log (last 30)</h2>
+      <div style={{ maxHeight: 180, overflowY: 'auto', background: '#f8fafc', borderRadius: 8, padding: 8, marginBottom: 14, fontSize: 12 }}>
+        {(store.auditLog || []).slice(-30).reverse().map((a, i) => (
+          <div key={i} className="muted" style={{ padding: '2px 0', borderBottom: '1px solid #eef2f7' }}>{a.at?.replace('T', ' ').slice(0, 19)} — <b>{a.user}</b> — {a.what}</div>
+        ))}
+        {!(store.auditLog || []).length && <span className="muted">No entries yet.</span>}
+      </div>
+
       <h2 className="ptitle">Insurance panel &amp; SMS templates</h2>
       <table className="grid" style={{ marginBottom: 10 }}>
         <tbody>

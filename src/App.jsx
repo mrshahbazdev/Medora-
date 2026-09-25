@@ -11,6 +11,8 @@ import LabPanel from './components/LabPanel.jsx';
 import VaccinesPanel from './components/VaccinesPanel.jsx';
 import StaffPanel from './components/StaffPanel.jsx';
 import StatsPanel from './components/StatsPanel.jsx';
+import TvDisplay from './components/TvDisplay.jsx';
+import PinGate from './components/PinGate.jsx';
 import { exportCsv } from './lib/csv.js';
 
 const NAV = [
@@ -33,7 +35,9 @@ const NAV = [
 const RECEPTION_TABS = ['queue', 'daybook'];
 
 export default function App() {
+  if (new URLSearchParams(window.location.search).get('tv') === '1') return <TvDisplay />;
   const [store, setStore] = useState(null);
+  const [user, setUser] = useState(null);
   const [tab, setTab] = useState('dash');
   const [patientId, setPatientId] = useState(null);
   const [rxVisitId, setRxVisitId] = useState(null); // visit open in Rx editor
@@ -51,13 +55,20 @@ export default function App() {
   useEffect(() => {
     if (!store) return;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => window.api.store.save(store), 600);
+    saveTimer.current = setTimeout(() => {
+      window.api.store.save(store);
+      if (store.settings.syncFolder)
+        window.api.export.toFolder({ folder: store.settings.syncFolder, name: 'medora-sync.json', text: JSON.stringify(store) });
+    }, 600);
     return () => clearTimeout(saveTimer.current);
   }, [store]);
 
-  const update = (fn) => setStore(s => {
+  const update = (fn, label) => setStore(s => {
     const next = structuredClone(s);
     fn(next);
+    next.auditLog = next.auditLog || [];
+    next.auditLog.push({ at: new Date().toISOString(), user: (user && user.name) || 'app', what: label || 'edit' });
+    if (next.auditLog.length > 500) next.auditLog = next.auditLog.slice(-500);
     return next;
   });
 
@@ -92,18 +103,22 @@ export default function App() {
 
   if (!store) return <div className="boot">Loading…</div>;
 
+  if ((store.settings.users || []).length && !user)
+    return <PinGate store={store} onLogin={setUser} />;
+
   const firstRun = !store.settings.firstRunDone;
   const ur = !!store.settings.uiUrdu;
-  const reception = !!store.settings.receptionMode;
+  const reception = !!store.settings.receptionMode || (user && user.role === 'reception');
   const nav = reception
     ? NAV.map(g => ({ ...g, items: g.items.filter(i => RECEPTION_TABS.includes(i.id)) })).filter(g => g.items.length)
     : NAV;
   if (reception && !RECEPTION_TABS.includes(tab)) setTab('queue');
+  const navForUser = (user && user.role === 'doctor') ? nav.map(g => ({ ...g, items: g.items.filter(i => !['staff', 'settings'].includes(i.id)) })).filter(g => g.items.length) : nav;
   return (
     <div className="app" dir={ur ? 'rtl' : 'ltr'}>
       <aside className="side">
         <div className="sbrand"><span className="smark">✚</span><div><div className="sname">Medora</div><div className="ssub">Clinic OS</div></div></div>
-        {nav.map(g => (
+        {navForUser.map(g => (
           <div key={g.sec} className="sgrp">
             <div className="ssec">{ur ? (g.secUr || g.sec) : g.sec}</div>
             {g.items.map(t => (
@@ -132,6 +147,8 @@ export default function App() {
                 {store.settings.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>)}
             {reception && <span className="opd" style={{ background: '#fde68a', color: '#92400e' }}>Receptionist</span>}
+            {user && <span className="muted">👤 {user.name} <button className="icon" title="Lock" onClick={() => setUser(null)}>🔒</button></span>}
+            <button className="icon" title="Waiting-room TV board" onClick={() => window.open(window.location.href.split('?')[0] + '?tv=1', '_blank')}>📺</button>
           </div>
           <span className="spacer" />
           <div className="top-actions">

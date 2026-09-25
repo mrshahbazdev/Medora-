@@ -17,6 +17,8 @@ export function emptyStore() {
     attendance: [],
     payroll: [],
     insurers: [],
+    auditLog: [],
+    sales: [],
     expenses: [],
     branches: [],
     settings: defaultSettings()
@@ -34,6 +36,8 @@ export function defaultSettings() {
     padStyle: 'letter', // 'letter' | 'label' | 'form'
     receptionMode: false,
     uiUrdu: false,
+    users: [],
+    syncFolder: '',
     smsTemplates: [
       { id: 's1', name: 'Appointment reminder', text: 'Assalam o Alaikum {name}, aap ki appointment {date} ko {clinic} mein hai. — {doctor}' },
       { id: 's2', name: 'Report ready', text: '{name}, aap ki lab report {clinic} se collect ho sakti hai. — {doctor}' },
@@ -79,6 +83,7 @@ export function newVisit(patientId) {
     eye: { od: { sph: '', cyl: '', axis: '', add: '' }, os: { sph: '', cyl: '', axis: '', add: '' } },
     dental: [],
     anc: { gravida: '', para: '', edd: '', fhr: '', fundal: '' },
+    procedure: { name: '', anesthesia: '', findings: '', surgeon: '' },
     advice: [],
     doctorId: '',
     followUpDays: '',
