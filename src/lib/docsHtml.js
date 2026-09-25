@@ -395,7 +395,43 @@ export function opdBillHtml({ store, patient, visit }) {
     <div class="hd"><b>${esc(st.clinicName || 'Clinic')}</b><br>OPD Bill — ${esc(visit.date)}</div>
     <div><b>${esc(patient.name)}</b> · MRN ${esc(patient.mrn || '')}</div>
     <table><tr><th>#</th><th>Item</th><th style="text-align:right">Amt</th></tr>${rows}</table>
-    <div class="tot"><span>TOTAL</span><span>Rs ${total}</span></div>
+    ${Number(visit.discount) ? `<div style="display:flex;justify-content:space-between"><span>Discount</span><span>- Rs ${Number(visit.discount)}</span></div>` : ''}
+    <div class="tot"><span>TOTAL</span><span>Rs ${total - (Number(visit.discount) || 0)}</span></div>
     <div class="foot">Thank you — get well soon.<br>${esc(st.clinicPhone || '')}</div>
   </div></body></html>`;
+}
+
+
+export function deathCertHtml({ store, patient, adm, doctor }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A5; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9.5pt; }
+    .pg { width: 148mm; padding: 12mm; }
+    .hd { text-align: center; border-bottom: 2px solid #333; padding-bottom: 3mm; margin-bottom: 4mm; }
+    .hd b { font-size: 13pt; } .body { line-height: 1.9; }
+    .sign { margin-top: 18mm; text-align: right; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')}</b><br><span style="font-size:9pt">DEATH CERTIFICATE</span></div>
+    <div class="body">This is to certify that <b>${esc(patient.name)}</b>, ${esc(ageText(patient))}, MRN ${esc(patient.mrn || '')}, resident of ${esc(patient.address || '—')}, was admitted to this facility${adm ? ` on ${esc(adm.admittedOn)}` : ''} and expired${adm && adm.dischargedOn ? ` on ${esc(adm.dischargedOn)}` : ' on ' + esc(new Date().toISOString().slice(0, 10))}.<br>Cause of death (as per clinical record): ${esc((adm && adm.diagnosis) || '—')}.</div>
+    <div class="sign">${st.signatureDataUrl ? `<img src="${st.signatureDataUrl}" style="max-height:14mm">` : ''}<br><b>${esc(doctor || st.doctorName)}</b><br>${esc(st.clinicName)}</div>
+  </div></body></html>`;
+}
+
+export function otListHtml({ store, date }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rows = (store.otSchedule || []).filter(o => o.date === date).sort((a, b) => (a.time || '').localeCompare(b.time || '')).map((o, i) => {
+    const p = store.patients.find(x => x.id === o.patientId);
+    return `<tr><td>${i + 1}</td><td>${esc(o.time)}</td><td>${esc(p ? p.name : '')}</td><td>${esc(o.procedure)}</td><td>${esc(o.surgeon)}</td><td>${esc(o.anesthesia)}</td><td>${esc(o.status)}</td></tr>`;
+  }).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A4; margin: 12mm; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9pt; }
+    h2 { text-align: center; color: #134e4a; margin-bottom: 4mm; }
+    table { width: 100%; border-collapse: collapse; } th { background: #f0fdfa; }
+    th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
+  </style></head><body><h2>${esc(st.clinicName || 'Clinic')} — OT list, ${esc(date)}</h2>
+  <table><tr><th>#</th><th>Time</th><th>Patient</th><th>Procedure</th><th>Surgeon</th><th>Anesthesia</th><th>Status</th></tr>${rows || '<tr><td colspan="7">No cases scheduled</td></tr>'}</table></body></html>`;
 }

@@ -19,6 +19,7 @@ export function emptyStore() {
     insurers: [],
     auditLog: [],
     sales: [],
+    otSchedule: [], bloodBank: [], referrals: [], nursing: [],
     expenses: [],
     branches: [],
     settings: defaultSettings()

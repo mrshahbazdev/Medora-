@@ -8,6 +8,9 @@ export default function LabPanel({ store, update }) {
   const [test, setTest] = useState('');
   const [result, setResult] = useState('');
   const [note, setNote] = useState('');
+  const [bbName, setBbName] = useState('');
+  const [bbGroup, setBbGroup] = useState('O+');
+  const [bbPhone, setBbPhone] = useState('');
 
   const labs = (store.labs || []).slice().sort((a, b) => b.date.localeCompare(a.date));
 
@@ -68,6 +71,29 @@ export default function LabPanel({ store, update }) {
           </div>
         );
       })}
+      <h3 className="ptitle" style={{ marginTop: 16 }}>Blood bank register</h3>
+      <div className="frow" style={{ marginBottom: 8 }}>
+        <input className="in" style={{ width: 140 }} value={bbName} placeholder="Donor name" onChange={e => setBbName(e.target.value)} />
+        <select className="in" style={{ width: 80 }} value={bbGroup} onChange={e => setBbGroup(e.target.value)}>
+          {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(g => <option key={g}>{g}</option>)}
+        </select>
+        <input className="in" style={{ width: 130 }} value={bbPhone} placeholder="Phone" onChange={e => setBbPhone(e.target.value)} />
+        <button className="btn small" onClick={() => { if (!bbName) return; update(s => (s.bloodBank = s.bloodBank || []).push({ id: uid(), name: bbName, group: bbGroup, phone: bbPhone, date: new Date().toISOString().slice(0, 10), status: 'available' })); setBbName(''); setBbPhone(''); }}>+ Donor</button>
+      </div>
+      <table className="grid">
+        <thead><tr><th>Donor</th><th>Group</th><th>Phone</th><th>Donated</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {(store.bloodBank || []).map(b => (
+            <tr key={b.id}>
+              <td><b>{b.name}</b></td><td>{b.group}</td><td>{b.phone}</td><td>{b.date}</td>
+              <td><select className="in" style={{ width: 100, padding: '2px 6px', fontSize: 11 }} value={b.status || 'available'} onChange={e => update(s => { const x = s.bloodBank.find(z => z.id === b.id); if (x) x.status = e.target.value; })}>
+                <option>available</option><option>used</option><option>deferred</option>
+              </select></td>
+              <td><button className="icon" onClick={() => update(s => s.bloodBank = s.bloodBank.filter(x => x.id !== b.id))}>✕</button></td>
+            </tr>))}
+          {(store.bloodBank || []).length === 0 && <tr><td colSpan="6" className="muted">No donors registered.</td></tr>}
+        </tbody>
+      </table>
     </div>
   );
 }

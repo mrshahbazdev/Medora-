@@ -55,6 +55,29 @@ export default function StatsPanel({ store, update }) {
         </tbody>
       </table>
 
+      <h3 className="ptitle">Referral log</h3>
+      <table className="grid">
+        <thead><tr><th>Date</th><th>Patient</th><th>Referred to</th><th>Reason</th></tr></thead>
+        <tbody>
+          {(store.referrals || []).slice(-10).reverse().map(r => {
+            const p = store.patients.find(x => x.id === r.patientId);
+            return <tr key={r.id}><td>{r.date}</td><td>{p ? p.name : '?'}</td><td>{r.toFacility}</td><td>{r.reason}</td></tr>;
+          })}
+          {(store.referrals || []).length === 0 && <tr><td colSpan="4" className="muted">No referrals logged — use the Referral button on an Rx.</td></tr>}
+        </tbody>
+      </table>
+
+      <h3 className="ptitle">Annual disease register</h3>
+      <table className="grid">
+        <thead><tr><th>Diagnosis</th><th>This year</th></tr></thead>
+        <tbody>
+          {(() => { const year = month.slice(0, 4); const c = {};
+            store.visits.filter(v => v.date.startsWith(year) && v.diagnosis).forEach(v => { c[v.diagnosis] = (c[v.diagnosis] || 0) + 1; });
+            const e = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 20);
+            return e.length ? e.map(([k, n]) => <tr key={k}><td>{k}</td><td><b>{n}</b></td></tr>) : <tr><td colSpan="2" className="muted">No diagnoses this year.</td></tr>; })()}
+        </tbody>
+      </table>
+
       <h3 className="ptitle">Insurance / panel claims</h3>
       <table className="grid">
         <thead><tr><th>Insurer</th><th>Visits</th><th>Billed</th></tr></thead>

@@ -4,11 +4,17 @@ import { dischargeSummaryHtml } from '../lib/docsHtml.js';
 import { medBillHtml } from '../lib/docsHtml.js';
 
 export default function AdmissionsPanel({ store, update }) {
+  const today = new Date().toISOString().slice(0, 10);
   const [pick, setPick] = useState('');
   const [ward, setWard] = useState(store.settings.wards?.[0] || '');
   const [bed, setBed] = useState('');
+  const [otDate, setOtDate] = useState(today);
+  const [otPick, setOtPick] = useState('');
+  const [otTime, setOtTime] = useState('10:00');
+  const [otProc, setOtProc] = useState('');
+  const [otSurgeon, setOtSurgeon] = useState('');
+  const [otAnes, setOtAnes] = useState('');
   const [doctorId, setDoctorId] = useState('');
-  const today = new Date().toISOString().slice(0, 10);
 
   const admit = () => {
     if (!pick) return;

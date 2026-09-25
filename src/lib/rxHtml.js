@@ -85,6 +85,7 @@ export function rxDocument({ store, patient, visit }) {
       : `<div class="rx-advrow"><span>${esc(a.en)}</span>${st.bilingual ? `<span class="rx-ur">${a.ur}</span>` : ''}</div>`).join('')}</div>` : ''}
   <div class="rx-foot">
     <div>${fup ? `Next visit: <b>${fup}</b>` : ''}${visit.fee && st.showFee ? ` &nbsp;·&nbsp; Fee: ${esc(visit.fee)}` : ''}</div>
+    ${st.padThirdLine ? `<div style="text-align:center;font-size:8.5pt;color:#64748b;margin-top:3mm">${esc(st.padThirdLine)}</div>` : ''}
     <div class="rx-sign">${st.signatureDataUrl ? `<img src="${st.signatureDataUrl}" style="max-height:14mm;display:block;margin:0 auto 1mm">` : ''}${esc(st.doctorName)}</div>
   </div>`;
 

@@ -177,6 +177,7 @@ export default function SettingsPanel({ store, update, setStore }) {
         <label className="lbl">Accent color
           <input className="in" type="color" style={{ width: 60, height: 38, padding: 2 }} value={(st.letterhead && st.letterhead.accent) || '#0d9488'} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.accent = e.target.value; })} /></label>
         {st.letterhead?.logoDataUrl && <img src={st.letterhead.logoDataUrl} style={{ height: 44, objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: 6, padding: 2 }} />}
+        <input className="in" style={{ flex: 1 }} value={st.padThirdLine || ''} placeholder="Footer line on pad (e.g. Pashto / regional language note)" onChange={e => mut(x => x.padThirdLine = e.target.value)} />
       </div>
 
       <h2 className="ptitle">Drug database</h2>
@@ -222,6 +223,13 @@ export default function SettingsPanel({ store, update, setStore }) {
       <h2 className="ptitle">Data</h2>
       <div className="frow">
         <button className="btn small ghost" onClick={loadHistory}>Snapshot history…</button>
+        <button className="btn small ghost" onClick={async () => {
+          const pw = prompt('Backup password:'); if (!pw) return;
+          const data = JSON.stringify(store);
+          const enc = 'MEDORA-ENC:' + btoa(Array.from(data).map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ pw.charCodeAt(i % pw.length))).join(''));
+          await window.api.export.toFolder({ folder: '', name: 'medora-backup-encrypted.txt', text: enc });
+          alert('Encrypted backup saved to export folder.');
+        }}>Encrypted backup</button>
         <button className="btn small ghost" onClick={() => window.api.app.openUserData()}>Open data folder</button>
       </div>
       {history && (

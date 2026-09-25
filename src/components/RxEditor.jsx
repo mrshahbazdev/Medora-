@@ -101,6 +101,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
     const to = prompt('Refer to (doctor / facility):', 'Consultant, THQ Hospital');
     if (to === null) return;
     const reason = prompt('Reason:', visit.diagnosis || visit.complaint || '');
+    if (to) update(s => (s.referrals = s.referrals || []).push({ id: uid(), date: visit.date, patientId: patient.id, toFacility: to, reason: reason || '' }));
     window.api.export.print({ html: referralLetterHtml({ store, patient, visit, toDoctor: to, reason }) });
   };
   const copySms = () => {
@@ -146,6 +147,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
             <option value="" disabled>Rx preset…</option>
             {RX_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
           </select>
+          <input className="in num" style={{ width: 80 }} type="number" min="0" placeholder="Discount" title="Discount Rs" value={visit.discount || ''} onChange={e => mut(v => v.discount = Number(e.target.value) || 0)} />
           <button className="btn small ghost" onClick={() => window.api.export.print({ html: opdBillHtml({ store, patient, visit }) })}>Bill</button>
           <button className="btn small ghost" onClick={printCert}>Sick note</button>
           <button className="btn small ghost" title="Copy Rx text to paste in WhatsApp" onClick={() => {
