@@ -25,6 +25,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
 
   const patient = store.patients.find(p => p.id === patientId) || null;
   const rxVisit = rxVisitId ? store.visits.find(v => v.id === rxVisitId) : null;
+  const visits = patient ? patientVisits(store, patient.id) : [];
 
   const addPatient = () => {
     const p = newPatient();

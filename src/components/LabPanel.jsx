@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { newLab, patientMrn, ageText, uid } from '../lib/model.js';
+import { newLab, ageText, uid } from '../lib/model.js';
 import { labReportHtml } from '../lib/docsHtml.js';
 import { INVESTIGATION_PRESETS } from '../lib/meds.js';
 
@@ -35,7 +35,7 @@ export default function LabPanel({ store, update }) {
       <div className="frow">
         <select className="in" value={pick} onChange={e => setPick(e.target.value)}>
           <option value="">Select patient…</option>
-          {store.patients.map(p => <option key={p.id} value={p.id}>{p.name} · {patientMrn(p)}</option>)}
+          {store.patients.map(p => <option key={p.id} value={p.id}>{p.name} · {p.mrn}</option>)}
         </select>
         <input className="in" list="labtests" placeholder="Test (e.g. CBC)" value={test} onChange={e => setTest(e.target.value)} />
         <datalist id="labtests">{INVESTIGATION_PRESETS.map(t => <option key={t} value={t} />)}</datalist>
@@ -50,7 +50,7 @@ export default function LabPanel({ store, update }) {
         return (
           <div key={pid} style={{ marginBottom: 18 }}>
             <h3 className="ptitle" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {p ? `${p.name} · ${patientMrn(p)} · ${ageText(p)}` : pid}
+              {p ? `${p.name} · ${p.mrn} · ${ageText(p)}` : pid}
               <button className="btn small ghost" onClick={() => printFor(pid)}>Print report</button>
             </h3>
             <table className="grid">
