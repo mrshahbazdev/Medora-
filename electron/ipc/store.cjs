@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { app, ipcMain } = require('electron');
+const { readDoc, writeDoc, readJsonEnc, writeJsonEnc, hashPins, verifyPinStr } = require('./doc-io.cjs');
 
 /**
  * Document store. All of Medora's data is one JSON document written
@@ -33,26 +34,24 @@ function atomicWrite(file, text) {
 }
 
 function registerStoreIPC() {
-  ipcMain.handle('store:load', () => {
-    try {
-      return { doc: JSON.parse(fs.readFileSync(docPath(), 'utf8')) };
-    } catch {
-      return { doc: null };
-    }
-  });
+  ipcMain.handle('store:load', () => ({ doc: readDoc() }));
 
   ipcMain.handle('store:save', (_e, doc) => {
-    atomicWrite(docPath(), JSON.stringify(doc));
+    writeDoc(hashPins(doc));
     return { ok: true };
   });
+
+  // PIN gate is enforced in the main process — hashed PINs never leave it
+  // in a verifiable form for the renderer to compare.
+  ipcMain.handle('auth:verifyPin', (_e, { storedPin, candidate }) => ({ ok: verifyPinStr(storedPin, candidate) }));
 
   ipcMain.handle('store:snapshot', (_e, doc, label) => {
     fs.mkdirSync(historyDir(), { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const id = `${stamp}_${crypto.randomBytes(3).toString('hex')}`;
-    atomicWrite(
+    writeJsonEnc(
       path.join(historyDir(), `${id}.json`),
-      JSON.stringify({ id, label: label || '', at: new Date().toISOString(), doc })
+      { id, label: label || '', at: new Date().toISOString(), doc }
     );
     prune();
     return { ok: true, id };
@@ -64,8 +63,8 @@ function registerStoreIPC() {
         .filter(f => f.endsWith('.json'))
         .map(f => {
           try {
-            const s = JSON.parse(fs.readFileSync(path.join(historyDir(), f), 'utf8'));
-            return { id: s.id, label: s.label, at: s.at };
+            const s = readJsonEnc(path.join(historyDir(), f));
+            return s ? { id: s.id, label: s.label, at: s.at } : null;
           } catch { return null; }
         })
         .filter(Boolean)
@@ -78,8 +77,8 @@ function registerStoreIPC() {
   ipcMain.handle('store:restore', (_e, id) => {
     if (!/^[\w-]+$/.test(id)) return { doc: null };
     try {
-      const s = JSON.parse(fs.readFileSync(path.join(historyDir(), `${id}.json`), 'utf8'));
-      return { doc: s.doc };
+      const s = readJsonEnc(path.join(historyDir(), `${id}.json`));
+      return { doc: s ? s.doc : null };
     } catch {
       return { doc: null };
     }

@@ -4,11 +4,12 @@ export default function PinGate({ store, onLogin }) {
   const [pin, setPin] = useState('');
   const [err, setErr] = useState('');
   const users = store.settings.users || [];
-  const tryPin = (v) => {
-    const u = users.find(x => x.pin === v);
-    if (u) onLogin(u);
-    else if (v.length >= 4) { setErr('Wrong PIN'); setPin(''); }
-    else setErr('');
+  const tryPin = async (v) => {
+    if (v.length < 4) { setErr(''); return; }
+    for (const u of users) {
+      if (await window.api.auth.verifyPin(u.pin, v)) return onLogin(u);
+    }
+    setErr('Wrong PIN'); setPin('');
   };
   return (
     <div className="pingate">

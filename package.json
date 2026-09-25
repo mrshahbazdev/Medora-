@@ -60,6 +60,10 @@
    "publisher": "CN=FROM_PARTNER_CENTER",
    "publisherDisplayName": "Muhammad Shahbaz",
    "backgroundColor": "#0b3b3b",
+   "addAutoLaunchExtension": false,
+   "capabilities": [
+    "privateNetworkClientServer"
+   ],
    "languages": [
     "en-US"
    ],

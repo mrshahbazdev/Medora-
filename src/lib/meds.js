@@ -175,6 +175,67 @@ export const INVESTIGATION_PRESETS = [
   'ECG', 'Vitamin D level', 'Stool examination', 'Pregnancy test ( urine )', 'Blood group & Rh'
 ];
 
+// ---- Drug classes: allergy tokens match a med's class, not just its name ----
+// Each entry maps a generic/brand substring → allergy-relevant class.
+const CLASS_RULES = [
+  ['amoxicillin', 'penicillin'], ['ampicillin', 'penicillin'], ['cloxacillin', 'penicillin'],
+  ['flucloxacillin', 'penicillin'], ['piperacillin', 'penicillin'],
+  ['cephradine', 'cephalosporin'], ['cephalexin', 'cephalosporin'], ['cefixime', 'cephalosporin'],
+  ['ceftriaxone', 'cephalosporin'], ['cefuroxime', 'cephalosporin'], ['cefpodoxime', 'cephalosporin'],
+  ['ciprofloxacin', 'quinolone'], ['ofloxacin', 'quinolone'], ['levofloxacin', 'quinolone'],
+  ['moxifloxacin', 'quinolone'], ['norfloxacin', 'quinolone'],
+  ['sulfamethoxazole', 'sulfonamide'], ['trimethoprim', 'sulfonamide'], ['sulfadiazine', 'sulfonamide'],
+  ['ibuprofen', 'nsaid'], ['diclofenac', 'nsaid'], ['mefenamic', 'nsaid'], ['naproxen', 'nsaid'],
+  ['aspirin', 'nsaid'], ['indomethacin', 'nsaid'], ['celecoxib', 'nsaid'], ['ketorolac', 'nsaid'],
+  ['azithromycin', 'macrolide'], ['clarithromycin', 'macrolide'], ['erythromycin', 'macrolide'],
+  ['metronidazole', 'nitroimidazole'], ['tinidazole', 'nitroimidazole'],
+  ['doxycycline', 'tetracycline'], ['tetracycline', 'tetracycline'],
+  ['tramadol', 'opioid'], ['codeine', 'opioid'], ['nalbuphine', 'opioid'],
+  ['prednisolone', 'steroid'], ['dexamethasone', 'steroid'], ['betamethasone', 'steroid'],
+  ['hydrocortisone', 'steroid'], ['prednisone', 'steroid'],
+  ['alprazolam', 'benzodiazepine'], ['bromazepam', 'benzodiazepine'], ['lorazepam', 'benzodiazepine'],
+  ['diazepam', 'benzodiazepine'], ['clonazepam', 'benzodiazepine'], ['midazolam', 'benzodiazepine']
+];
+
+// What a doctor typically writes in the allergy field → the class it means.
+const ALLERGY_CLASS = {
+  penicillin: 'penicillin', amoxicillin: 'penicillin', augmentin: 'penicillin',
+  amoxil: 'penicillin', ampicillin: 'penicillin',
+  sulfa: 'sulfonamide', sulfonamide: 'sulfonamide', septran: 'sulfonamide',
+  cotrimoxazole: 'sulfonamide', bactrim: 'sulfonamide',
+  nsaid: 'nsaid', aspirin: 'nsaid', brufen: 'nsaid', ibuprofen: 'nsaid',
+  diclofenac: 'nsaid', voltral: 'nsaid', ponstan: 'nsaid', cataflam: 'nsaid', disprin: 'nsaid',
+  quinolone: 'quinolone', ciprofloxacin: 'quinolone', cipro: 'quinolone', ciproxin: 'quinolone',
+  macrolide: 'macrolide', azithromycin: 'macrolide', zithromax: 'macrolide', erythromycin: 'macrolide',
+  cephalosporin: 'cephalosporin',
+  codeine: 'opioid', tramadol: 'opioid',
+  steroid: 'steroid', prednisolone: 'steroid',
+  flagyl: 'nitroimidazole', metronidazole: 'nitroimidazole',
+  benzodiazepine: 'benzodiazepine', xanax: 'benzodiazepine', lexotanil: 'benzodiazepine', ativan: 'benzodiazepine'
+};
+
+export function medClasses(name, generic) {
+  const hay = `${name || ''} ${generic || ''}`.toLowerCase();
+  const set = new Set();
+  for (const [sub, cls] of CLASS_RULES) if (hay.includes(sub)) set.add(cls);
+  return set;
+}
+
+// Returns { hit, how } when an item conflicts with the allergy text, else null.
+// `how` is 'name' (string match) or 'class' (drug-class match).
+export function allergyConflict(itemName, generic, allergyText) {
+  if (!allergyText) return null;
+  const toks = allergyText.toLowerCase().split(/[,;\s]+/).filter(t => t.length > 2);
+  const hay = `${itemName || ''} ${generic || ''}`.toLowerCase();
+  if (toks.some(t => hay.includes(t))) return { hit: itemName, how: 'name' };
+  const classes = medClasses(itemName, generic);
+  for (const t of toks) {
+    const cls = ALLERGY_CLASS[t];
+    if (cls && classes.has(cls)) return { hit: itemName, how: `class (${cls})` };
+  }
+  return null;
+}
+
 // ---- Minimal offline interaction cautions (pairs of generic substrings) ----
 export const INTERACTIONS = [
   { a: 'aspirin', b: 'ibuprofen', warn: 'Aspirin + ibuprofen: increased GI bleed risk' },

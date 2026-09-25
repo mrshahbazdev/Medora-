@@ -233,6 +233,13 @@ export default function App() {
         <div className="welcome">
           <h1>Welcome to Medora</h1>
           <p>A sample clinic (Dr. Ayesha Khan, City Care Clinic) with 8 patients, 4 visits and a full medicine library is loaded so you can try everything — write a prescription, print it, work through today's queue.</p>
+          <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, maxWidth: 560 }}>
+            <b>Your consent & privacy:</b> by using Medora you agree that patient health data (names, diagnoses,
+            prescriptions, visits) is entered and stored <b>only on this computer</b> — encrypted at rest.
+            Nothing is uploaded or shared unless you turn on Local connection yourself. Medora is a
+            record-keeping and printing tool — <b>not clinical decision support</b>; the treating doctor
+            remains responsible for every medical decision.
+          </p>
           <div className="welcome-actions">
             <button className="btn" onClick={() => update(s => { s.settings.firstRunDone = true; })}>Explore sample data</button>
             <button className="btn ghost" onClick={() => { setStore(emptyStore()); setTab('settings'); }}>Start blank — set up my clinic</button>
@@ -253,7 +260,7 @@ export default function App() {
         {tab === 'stats' && <StatsPanel store={store} update={update} />}
         {tab === 'settings' && <SettingsPanel store={store} update={update} setStore={setStore} />}
         </main>
-        <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Nothing leaves this computer.</footer>
+        <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Data is encrypted on this computer. Not clinical decision support.</footer>
       </div>
     </div>
   );

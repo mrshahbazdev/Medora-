@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
-function LanConnect() {
+function LanConnect({ st, mut }) {
   const [info, setInfo] = useState(null);
-  useEffect(() => { window.api.host?.info().then(setInfo).catch(() => {}); }, []);
+  const refresh = () => window.api.host?.info().then(setInfo).catch(() => {});
+  useEffect(() => { refresh(); }, []);
   if (!info) return null;
   if (info.remote) return (
     <div className="pcard" style={{ marginBottom: 14, fontSize: 13 }}>
@@ -11,15 +12,29 @@ function LanConnect() {
   );
   return (
     <div className="pcard" style={{ marginBottom: 14, fontSize: 13, lineHeight: 1.7 }}>
-      <b>This PC is the main computer</b> — other laptops/PCs on the same WiFi/LAN use Medora from their browser,
-      and all data saves here. On the other device open Chrome/Edge and type:
-      {(info.urls || []).map(u => (
-        <div key={u} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-          <code style={{ fontSize: 15, fontWeight: 700, background: '#eef4ff', padding: '3px 10px', borderRadius: 6 }}>{u}</code>
-          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(u)}>Copy</button>
-        </div>
-      ))}
-      <div className="muted" style={{ marginTop: 6 }}>No install needed on other devices. If Windows asks, choose “Allow access” for the network.</div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+        <input type="checkbox" checked={!!info.enabled} onChange={async e => {
+          const r = await window.api.host.set(e.target.checked);
+          setInfo({ ...info, enabled: r.enabled, error: r.error });
+          refresh();
+        }} />
+        Share Medora on this WiFi — other PCs/laptops open it in a browser; all data saves on THIS computer
+      </label>
+      {info.error && <div style={{ color: '#dc2626', marginTop: 6 }}>⚠ Could not start sharing: {info.error}</div>}
+      {info.enabled && (<>
+        <div style={{ marginTop: 8 }}>On the other device open Chrome/Edge and type one of these links (access code is built in):</div>
+        {(info.urls || []).map(u => (
+          <div key={u} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <code style={{ fontSize: 14, fontWeight: 700, background: '#eef4ff', padding: '3px 10px', borderRadius: 6 }}>{u}?token={info.token}</code>
+            <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(`${u}?token=${info.token}`)}>Copy</button>
+          </div>
+        ))}
+        <div style={{ marginTop: 8 }}>Access code: <code style={{ fontSize: 15, fontWeight: 800, background: '#fef3c7', padding: '2px 10px', borderRadius: 6, letterSpacing: 2 }}>{info.token}</code>
+          <span className="muted"> — without this code no one on the WiFi can read or change the patient data.</span></div>
+      </>)}
+      {!info.enabled && <div className="muted" style={{ marginTop: 6 }}>Off — the patient database is not reachable from any other device. Access code for pairing: <code style={{ fontWeight: 700 }}>{info.token}</code></div>}
+      <label className="lbl" style={{ display: 'block', marginTop: 10 }}>Pair code (for app-to-app sync): if THIS PC is the second computer, enter the main PC's access code here
+        <input className="in" value={st.syncCode || ''} placeholder="e.g. A1B2C3D4" onChange={e => mut(x => x.syncCode = e.target.value.trim().toUpperCase())} /></label>
     </div>
   );
 }
@@ -134,7 +149,7 @@ export default function SettingsPanel({ store, update, setStore }) {
               <td><input className="in" value={u.name} onChange={e => mut(x => { x.users.find(z => z.id === u.id).name = e.target.value; })} /></td>
               <td><select className="in" value={u.role} onChange={e => mut(x => { x.users.find(z => z.id === u.id).role = e.target.value; })}>
                 <option value="admin">admin</option><option value="doctor">doctor</option><option value="reception">reception</option></select></td>
-              <td><input className="in" value={u.pin} onChange={e => mut(x => { x.users.find(z => z.id === u.id).pin = e.target.value.replace(/\D/g, '').slice(0, 6); })} /></td>
+              <td><input className="in" value={String(u.pin || '').startsWith('s:') ? '' : u.pin} placeholder={String(u.pin || '').startsWith('s:') ? '•••• (saved)' : '4-6 digits'} onChange={e => mut(x => { x.users.find(z => z.id === u.id).pin = e.target.value.replace(/\D/g, '').slice(0, 6); })} /></td>
               <td><button className="icon" onClick={() => mut(x => x.users = x.users.filter(z => z.id !== u.id))}>✕</button></td>
             </tr>
           ))}
@@ -145,7 +160,7 @@ export default function SettingsPanel({ store, update, setStore }) {
       </div>
 
       <h2 className="ptitle">Local connection — use Medora on other PCs</h2>
-      <LanConnect />
+      <LanConnect st={st} mut={mut} />
 
       <h2 className="ptitle">Sync folder (LAN / USB)</h2>
       <div className="frow" style={{ marginBottom: 8 }}>

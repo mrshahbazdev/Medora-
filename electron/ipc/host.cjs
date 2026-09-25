@@ -4,10 +4,12 @@ const http = require('http');
 const os = require('os');
 const crypto = require('crypto');
 const { app, ipcMain, BrowserWindow } = require('electron');
+const { lanCode } = require('./lan-code.cjs');
+const { readDoc, writeDoc, writeJsonEnc, hashPins, verifyPinStr, atomicWrite } = require('./doc-io.cjs');
 
-// LAN host mode: this PC runs Medora as the server. Other laptops/PCs on the
-// same WiFi open http://<this-ip>:47071 in any browser and use the same app —
-// every read/write lands on THIS machine's store file.
+// LAN host mode (OPT-IN): when enabled in Settings, this PC serves Medora to
+// other devices on the same WiFi. Every /api call requires the access code
+// shown on this PC — without it the patient database stays private.
 const HOST_PORT = 47071;
 
 const MIME = {
@@ -17,14 +19,7 @@ const MIME = {
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.webp': 'image/webp'
 };
 
-function docPath() { return path.join(app.getPath('userData'), 'medora.json'); }
 function histDir() { return path.join(app.getPath('userData'), 'history'); }
-
-function atomicWrite(file, text) {
-  const tmp = `${file}.${crypto.randomBytes(6).toString('hex')}.tmp`;
-  fs.writeFileSync(tmp, text, 'utf8');
-  fs.renameSync(tmp, file);
-}
 
 function distDir() {
   const candidates = [
@@ -37,7 +32,7 @@ function distDir() {
 
 function lanUrls() {
   const urls = [];
-  for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+  for (const addrs of Object.values(os.networkInterfaces())) {
     for (const a of addrs || []) {
       if (a.family === 'IPv4' && !a.internal) urls.push(`http://${a.address}:${HOST_PORT}`);
     }
@@ -45,57 +40,78 @@ function lanUrls() {
   return urls;
 }
 
-function registerHostIPC() {
-  let lastApplyAt = 0;
-  const pushToHostRenderer = doc => {
-    const at = doc.updatedAt || 0;
-    if (at <= lastApplyAt) return;
-    lastApplyAt = at;
-    const w = BrowserWindow.getAllWindows()[0];
-    if (w) w.webContents.send('medora:sync-apply', doc);
-  };
+let server = null;
+let serverError = null;
 
-  const server = http.createServer((req, res) => {
-    const url = (req.url || '/').split('?')[0];
+function startServer() {
+  if (server) return;
+  serverError = null;
+  server = http.createServer((req, res) => {
+    const parsed = new URL(req.url || '/', 'http://x');
+    const url = parsed.pathname;
     try {
-      if (url === '/api/store') {
-        if (req.method === 'GET') {
-          try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(fs.readFileSync(docPath(), 'utf8')); }
-          catch { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('null'); }
-          return;
+      if (url === '/api/ping') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true,"app":"medora"}'); return; }
+
+      if (url.startsWith('/api/')) {
+        const tok = parsed.searchParams.get('token') || req.headers['x-medora-token'] || '';
+        if (tok !== lanCode()) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid access code"}'); return; }
+
+        if (url === '/api/store') {
+          if (req.method === 'GET') {
+            const doc = readDoc();
+            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(doc));
+            return;
+          }
+          if (req.method === 'POST') {
+            let body = '';
+            req.on('data', c => { body += c; if (body.length > 50 * 1024 * 1024) req.destroy(); });
+            req.on('end', () => {
+              try {
+                const doc = JSON.parse(body);
+                // Refuse to wipe the clinic's record remotely: a POST must carry
+                // real structure, never an emptied patients array.
+                if (!doc || !Array.isArray(doc.patients) || !doc.settings || (doc.patients.length === 0 && !doc.updatedAt)) {
+                  res.writeHead(400); res.end('bad doc'); return;
+                }
+                writeDoc(hashPins(doc));
+                const w = BrowserWindow.getAllWindows()[0];
+                if (w) w.webContents.send('medora:sync-apply', doc);
+                res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
+              } catch (e) { res.writeHead(500); res.end(String(e)); }
+            });
+            return;
+          }
         }
-        if (req.method === 'POST') {
+        if (url === '/api/snapshot' && req.method === 'POST') {
           let body = '';
-          req.on('data', c => { body += c; if (body.length > 50 * 1024 * 1024) req.destroy(); });
+          req.on('data', c => body += c);
           req.on('end', () => {
             try {
-              const doc = JSON.parse(body);
-              if (!doc || !Array.isArray(doc.patients)) { res.writeHead(400); res.end('bad doc'); return; }
-              atomicWrite(docPath(), JSON.stringify(doc));
-              pushToHostRenderer(doc);
+              const { doc, label } = JSON.parse(body || '{}');
+              fs.mkdirSync(histDir(), { recursive: true });
+              const id = `${new Date().toISOString().replace(/[:.]/g, '-')}_${crypto.randomBytes(3).toString('hex')}`;
+              writeJsonEnc(path.join(histDir(), `${id}.json`), { id, label: label || 'remote', at: new Date().toISOString(), doc });
               res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
             } catch (e) { res.writeHead(500); res.end(String(e)); }
           });
           return;
         }
+        if (url === '/api/verify-pin' && req.method === 'POST') {
+          let body = '';
+          req.on('data', c => body += c);
+          req.on('end', () => {
+            try {
+              const { storedPin, candidate } = JSON.parse(body || '{}');
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: verifyPinStr(storedPin, candidate) }));
+            } catch (e) { res.writeHead(500); res.end(String(e)); }
+          });
+          return;
+        }
+        res.writeHead(404); res.end('not found'); return;
       }
-      if (url === '/api/snapshot' && req.method === 'POST') {
-        let body = '';
-        req.on('data', c => body += c);
-        req.on('end', () => {
-          try {
-            const { doc, label } = JSON.parse(body || '{}');
-            fs.mkdirSync(histDir(), { recursive: true });
-            const id = `${new Date().toISOString().replace(/[:.]/g, '-')}_${crypto.randomBytes(3).toString('hex')}`;
-            atomicWrite(path.join(histDir(), `${id}.json`), JSON.stringify({ id, label: label || 'remote', at: new Date().toISOString(), doc }));
-            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
-          } catch (e) { res.writeHead(500); res.end(String(e)); }
-        });
-        return;
-      }
-      if (url === '/api/ping') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true,"app":"medora"}'); return; }
 
-      // Static app files + SPA fallback so any route (?tv=1, ?kiosk=1) loads the UI.
+      // Static app files + SPA fallback (no auth — carries no patient data).
       const dist = distDir();
       if (!dist) { res.writeHead(503); res.end('app bundle not found'); return; }
       let fp = path.join(dist, decodeURIComponent(url === '/' ? '/index.html' : url));
@@ -104,10 +120,26 @@ function registerHostIPC() {
       fs.createReadStream(fp).pipe(res);
     } catch (e) { try { res.writeHead(500); res.end(String(e)); } catch {} }
   });
-  server.on('error', () => {});
-  try { server.listen(HOST_PORT, '0.0.0.0'); } catch { /* port busy */ }
+  server.on('error', e => {
+    serverError = String(e && e.code === 'EADDRINUSE' ? `Port ${HOST_PORT} is already in use` : e);
+    try { server.close(); } catch {}
+    server = null;
+  });
+  try { server.listen(HOST_PORT, '0.0.0.0'); } catch (e) { serverError = String(e); server = null; }
+}
 
-  ipcMain.handle('host:info', () => ({ ok: true, port: HOST_PORT, urls: lanUrls() }));
+function stopServer() {
+  if (!server) return;
+  try { server.close(); } catch {}
+  server = null;
+}
+
+function registerHostIPC() {
+  ipcMain.handle('host:info', () => ({ ok: true, enabled: !!server, error: serverError, port: HOST_PORT, token: lanCode(), urls: lanUrls() }));
+  ipcMain.handle('host:set', (_e, { enabled }) => {
+    if (enabled) startServer(); else stopServer();
+    return { ok: true, enabled: !!server, error: serverError };
+  });
 }
 
 module.exports = { registerHostIPC };

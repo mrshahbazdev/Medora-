@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS, RX_PRESETS, INVESTIGATION_PRESETS, INTERACTIONS } from '../lib/meds.js';
 import { medicalCertificateHtml, consentFormHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml, opdHandoutHtml, bundlePrintHtml, opdBillHtml } from '../lib/docsHtml.js';
-import { drugInfo } from '../lib/meds.js';
+import { drugInfo, allergyConflict } from '../lib/meds.js';
 import { uid, ageText } from '../lib/model.js';
 import { rxDocument, rxPreviewHtml, rxCss } from '../lib/rxHtml.js';
 
@@ -57,14 +57,13 @@ export default function RxEditor({ store, update, patient, visit, close, user })
   const lastVisit = store.visits.filter(v => v.patientId === patient.id && v.id !== visit.id)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
 
-  // Allergy cross-check: any item name/generic matching an allergy token.
+  // Allergy cross-check: name AND drug-class match (e.g. 'penicillin' allergy
+  // catches Augmentin/Amoxil). This is a name/class matcher — not full CDS.
   const allergyHit = useMemo(() => {
-    if (!patient.allergies) return null;
-    const toks = patient.allergies.toLowerCase().split(/[,;\s]+/).filter(Boolean);
     for (const it of visit.items) {
       const med = store.medicines.find(m => m.name === it.name);
-      const hay = `${it.name} ${med?.generic || ''}`.toLowerCase();
-      if (toks.some(t => hay.includes(t))) return it.name;
+      const c = allergyConflict(it.name, med?.generic || it.generic, patient.allergies);
+      if (c) return c;
     }
     return null;
   }, [patient.allergies, visit.items, store.medicines]);
@@ -199,7 +198,7 @@ export default function RxEditor({ store, update, patient, visit, close, user })
           <button className="btn" onClick={print}>Print</button>
         </div>
 
-        {allergyHit && <div className="allergy">⚠ {patient.name} is allergic to <b>{patient.allergies}</b> — {allergyHit} may conflict.</div>}
+        {allergyHit && <div className="allergy">⚠ {patient.name} is allergic to <b>{patient.allergies}</b> — <b>{allergyHit.hit}</b> may conflict (matched by {allergyHit.how}). Always verify against the patient's history.</div>}
         {visit.items.map(it => drugInfo(it.name)).filter(Boolean).map((d, i) => (
           <div key={i} className="muted" style={{ fontSize: 11, marginBottom: 4 }}>💊 {d.class}: {d.dose} — {d.warn}</div>
         ))}
@@ -339,9 +338,11 @@ function RxItems({ store, items, mut, patient, weight }) {
       m.name.toLowerCase().includes(n) || (m.generic || '').toLowerCase().includes(n)).slice(0, 12);
   }, [needle, store.medicines]);
 
+  // Dose is never prefilled — the prescriber chooses frequency/duration for
+  // THIS patient (no adult defaults, no weight guess). Not decision support.
   const addItem = (med) => mut(v => v.items.push({
     id: uid(), name: med.name, form: med.form || 'Tab', strength: med.strength || '',
-    freq: med.freq || 'TDS', days: med.days || 5, note: ''
+    freq: '', days: '', note: '', generic: med.generic || ''
   }));
 
   const mutItem = (id, fn) => mut(v => { const it = v.items.find(x => x.id === id); if (it) fn(it); });

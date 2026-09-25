@@ -2,6 +2,7 @@ const { ipcMain, BrowserWindow } = require('electron');
 const dgram = require('dgram');
 const http = require('http');
 const crypto = require('crypto');
+const { lanCode } = require('./lan-code.cjs');
 
 // Zero-config LAN sync: every instance broadcasts its store's updatedAt over
 // UDP and serves the latest store JSON over HTTP. Peers with an older store
@@ -14,7 +15,13 @@ function registerSyncIPC() {
   const clientId = crypto.randomBytes(8).toString('hex');
   let latestDoc = null;
   let latestAt = 0;
+  let pairCode = '';
   const inflight = new Set();
+
+  // A peer request is trusted only if it presents THIS PC's access code — so
+  // pairing means entering the main PC's code in Settings → Pair code on the
+  // other PC (stored as settings.syncCode and sent with every pull).
+  const codeOk = tok => tok && (tok === lanCode() || (pairCode && tok === pairCode));
 
   // Renderer publishes the newest store after every save.
   ipcMain.handle('sync:publish', (_e, { doc }) => {
@@ -22,6 +29,7 @@ function registerSyncIPC() {
       if (doc && Array.isArray(doc.patients)) {
         latestDoc = doc;
         latestAt = doc.updatedAt || Date.now();
+        pairCode = (doc.settings && doc.settings.syncCode) || pairCode;
         return { ok: true };
       }
       return { ok: false };
@@ -32,7 +40,9 @@ function registerSyncIPC() {
 
   // Serve the latest store to peers on the LAN.
   const server = http.createServer((req, res) => {
-    if (req.url === '/store' && latestDoc) {
+    const u = new URL(req.url || '/', 'http://x');
+    const tok = u.searchParams.get('token') || req.headers['x-medora-token'] || '';
+    if (u.pathname === '/store' && latestDoc && codeOk(tok)) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(latestDoc));
     } else {
@@ -60,7 +70,8 @@ function registerSyncIPC() {
       const remoteAt = msg.updatedAt || 0;
       if (remoteAt <= latestAt || inflight.has(rinfo.address)) return;
       inflight.add(rinfo.address);
-      http.get({ host: rinfo.address, port: msg.port || SYNC_PORT, path: '/store', timeout: 4000 }, res => {
+      http.get({ host: rinfo.address, port: msg.port || SYNC_PORT, path: '/store', timeout: 4000,
+        headers: { 'x-medora-token': pairCode || lanCode() } }, res => {
         let body = '';
         res.on('data', c => body += c);
         res.on('end', () => {

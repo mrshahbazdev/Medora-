@@ -23,8 +23,12 @@ contextBridge.exposeInMainWorld('api', {
     status: () => ipcRenderer.invoke('sync:status'),
     onApply: (cb) => ipcRenderer.on('medora:sync-apply', (_e, doc) => cb(doc))
   },
+  auth: {
+    verifyPin: (storedPin, candidate) => ipcRenderer.invoke('auth:verifyPin', { storedPin, candidate }).then(r => r.ok)
+  },
   host: {
-    info: () => ipcRenderer.invoke('host:info')
+    info: () => ipcRenderer.invoke('host:info'),
+    set: (enabled) => ipcRenderer.invoke('host:set', { enabled })
   },
   app: {
     version: () => ipcRenderer.invoke('app:version'),
