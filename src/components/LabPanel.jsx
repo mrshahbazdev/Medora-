@@ -51,11 +51,15 @@ export default function LabPanel({ store, update }) {
               <button className="btn small ghost" onClick={() => printFor(pid)}>Print report</button>
             </h3>
             <table className="grid">
-              <thead><tr><th>Test</th><th>Result</th><th>Note</th><th>Date</th><th></th></tr></thead>
+              <thead><tr><th>Test</th><th>Status</th><th>Result</th><th>Note</th><th>Date</th><th></th></tr></thead>
               <tbody>
                 {rows.map(l => (
                   <tr key={l.id}>
-                    <td>{l.test}</td><td><b>{l.result}</b></td><td>{l.note}</td><td>{l.date}</td>
+                    <td>{l.test}</td>
+                    <td><select className="in" style={{ width: 95, padding: '2px 6px', fontSize: 11 }} value={l.status || (l.result ? 'done' : 'ordered')} onChange={e => update(s => { const x = s.labs.find(z => z.id === l.id); if (x) x.status = e.target.value; })}>
+                      <option value="ordered">Ordered</option><option value="pending">Pending</option><option value="done">Done</option>
+                    </select></td>
+                    <td><b>{l.result}</b></td><td>{l.note}</td><td>{l.date}</td>
                     <td><button className="icon" onClick={() => update(s => s.labs = s.labs.filter(x => x.id !== l.id))} aria-label="Delete">✕</button></td>
                   </tr>
                 ))}

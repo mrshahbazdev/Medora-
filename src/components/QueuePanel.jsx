@@ -14,13 +14,13 @@ export default function QueuePanel({ store, update, openPatient, openRx }) {
 
   const add = () => {
     if (!pick) return;
-    update(s => s.queue.push({ id: uid(), patientId: pick, at: date, tokenNo: nextToken(s, date), room, doctorId, branch: s.settings.activeBranch || '', status: 'waiting', note: '' }));
+    update(s => s.queue.push({ id: uid(), patientId: pick, at: date, tokenNo: nextToken(s, date), room, doctorId, branch: s.settings.activeBranch || '', status: 'waiting', createdAt: Date.now(), note: '' }));
     setPick('');
   };
 
   const printToken = (item, p) => window.api.export.print({ html: tokenSlipHtml({ store, patient: p, item }) });
 
-  const setStatus = (id, status) => update(s => { const x = s.queue.find(z => z.id === id); if (x) x.status = status; });
+  const setStatus = (id, status) => update(s => { const x = s.queue.find(z => z.id === id); if (x) { x.status = status; if (status === 'in-progress' && !x.calledAt) x.calledAt = Date.now(); } });
   const remove = (id) => update(s => { s.queue = s.queue.filter(x => x.id !== id); });
 
   return (
@@ -51,7 +51,7 @@ export default function QueuePanel({ store, update, openPatient, openRx }) {
           <div className="qrow" key={item.id}>
             <div className="qnum" title={`Token ${item.tokenNo || i + 1}`}>{item.tokenNo || i + 1}</div>
             <div style={{ flex: 1 }}>
-              <b>{p.name}</b> <span className="muted">{p.gender}, {ageText(p)} · MRN {p.mrn} · {p.phone}</span>
+              <b>{p.name}</b>{p.tag ? <span className="pill st-partial" style={{ marginLeft: 6, fontSize: 10 }}>{p.tag}</span> : ''} <span className="muted">{p.gender}, {ageText(p)} · MRN {p.mrn} · {p.phone}</span>
               <div className="muted" style={{ fontSize: 11.5 }}>
                 {item.room || ''}{item.room && doc ? ' · ' : ''}{doc ? `${doc.name}${doc.room ? ' — ' + doc.room : ''}` : ''}
               </div>

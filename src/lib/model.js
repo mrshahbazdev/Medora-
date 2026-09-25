@@ -60,12 +60,13 @@ export function newPatient() {
   return {
     id: uid(), mrn: '', name: '', age: '', ageUnit: 'years',
     gender: '', phone: '', address: '', dob: '', allergies: '', notes: '',
-    height: '', chronic: '', photoDataUrl: '', referredBy: '', familyId: '',
+    height: '', chronic: '', photoDataUrl: '', referredBy: '', familyId: '', tag: '',
     createdAt: new Date().toISOString()
   };
 }
 
 export const newLab = (patientId, { test, result, note }) => ({
+  status: result ? 'done' : 'ordered',
   id: uid(), patientId, test: test || '', result: result || '', note: note || '', date: new Date().toISOString().slice(0, 10)
 });
 

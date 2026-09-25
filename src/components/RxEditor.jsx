@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS, RX_PRESETS, INVESTIGATION_PRESETS, INTERACTIONS } from '../lib/meds.js';
-import { medicalCertificateHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml, opdHandoutHtml, bundlePrintHtml } from '../lib/docsHtml.js';
+import { medicalCertificateHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml, opdHandoutHtml, bundlePrintHtml, opdBillHtml } from '../lib/docsHtml.js';
 import { drugInfo } from '../lib/meds.js';
 import { uid, ageText } from '../lib/model.js';
 import { rxDocument, rxPreviewHtml, rxCss } from '../lib/rxHtml.js';
@@ -31,6 +31,16 @@ function DoseCalc({ weight, onApply }) {
 }
 
 export default function RxEditor({ store, update, patient, visit, close }) {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 60000)), 15000);
+    return () => {
+      clearInterval(iv);
+      const mins = Math.max(1, Math.round((Date.now() - startRef.current) / 60000));
+      if (!visit.consultMinutes) update(s => { const v = s.visits.find(x => x.id === visit.id); if (v) v.consultMinutes = mins; });
+    };
+  }, []);
   const mut = (fn) => update(s => { const v = s.visits.find(x => x.id === visit.id); if (v) fn(v); });
   const lastVisit = store.visits.filter(v => v.patientId === patient.id && v.id !== visit.id)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
@@ -120,6 +130,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
       <div className="editor">
         <div className="etoolbar">
           <button className="btn small ghost" onClick={close}>← {patient.name}</button>
+          <span className="muted" style={{ fontSize: 11, alignSelf: 'center' }} title="Consult timer">⏱ {elapsed}m</span>
           <input className="in" type="date" value={visit.date} onChange={e => mut(v => v.date = e.target.value)} />
           {lastVisit && <button className="btn small ghost" onClick={copyLast} title={`Repeat ${lastVisit.date} Rx`}>Repeat last Rx</button>}
           {(store.settings.doctors || []).length > 0 && (
@@ -135,6 +146,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
             <option value="" disabled>Rx preset…</option>
             {RX_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
           </select>
+          <button className="btn small ghost" onClick={() => window.api.export.print({ html: opdBillHtml({ store, patient, visit }) })}>Bill</button>
           <button className="btn small ghost" onClick={printCert}>Sick note</button>
           <button className="btn small ghost" title="Copy Rx text to paste in WhatsApp" onClick={() => {
             const lines = [`${store.settings.clinicName || 'Clinic'} — ${visit.date}`, `${patient.name} (${patient.mrn || ''})`, `Dx: ${visit.diagnosis || '-'}`, ...visit.items.map(it => `• ${it.name} ${it.strength || ''} — ${it.freq || ''} x${it.days || ''}d`), ...visit.advice.map(a => `Advice: ${typeof a === 'object' ? a.en : a}`)];
@@ -177,6 +189,19 @@ export default function RxEditor({ store, update, patient, visit, close }) {
         {visit.type === 'procedure' && <div className="frow"><button className="btn small ghost" onClick={() => window.api.export.print({ html: procedureNoteHtml({ store, patient, visit }) })}>Print procedure note</button></div>}
         <div className="form">
           <div className="frow">
+          {(store.settings.rxTemplates || []).length > 0 && (
+            <select className="in" style={{ width: 170 }} value="" onChange={e => {
+              const t = (store.settings.rxTemplates || []).find(x => x.id === e.target.value); if (!t) return;
+              update(s => { const v = s.visits.find(x => x.id === visit.id); v.items.push(...t.items.map(i => ({ ...i, id: 'i' + Date.now() + Math.random() }))); v.advice.push(...(t.advice || [])); });
+            }}>
+              <option value="">Apply template…</option>
+              {(store.settings.rxTemplates || []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          <button className="btn small ghost" title="Save this Rx as a reusable template" onClick={() => {
+            const name = prompt('Template name:', visit.diagnosis || 'My Rx set'); if (!name) return;
+            update(s => { (s.settings.rxTemplates = s.settings.rxTemplates || []).push({ id: 't' + Date.now(), name, items: visit.items, advice: visit.advice }); });
+          }}>Save as template</button>
             <label className="lbl" style={{ flex: 1 }}>Complaint
               <input className="in" list="complaints" value={visit.complaint} onChange={e => mut(v => v.complaint = e.target.value)} placeholder="e.g. Fever with body aches" />
               <datalist id="complaints">{COMPLAINT_PRESETS.map(c => <option key={c} value={c} />)}</datalist>

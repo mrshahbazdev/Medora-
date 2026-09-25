@@ -9,11 +9,12 @@ function itemLine(item, bilingual) {
   const f = freqMap.get(item.freq);
   const dose = f && !['SOS', 'STAT', 'WK'].includes(f.code) ? f.pattern : (f ? f.code : esc(item.freq || ''));
   const days = item.days ? ` × ${item.days} day${item.days === 1 ? '' : 's'}` : '';
+  const urduOnly = bilingual === 'urdu' && f && f.urdu;
   const urdu = bilingual && f && f.urdu ? `<div class="rx-ur">${f.urdu}${item.days ? ` — ${item.days} دن` : ''}</div>` : '';
   return `<tr>
     <td class="rx-num"></td>
     <td class="rx-med"><div class="rx-name">${esc(item.name)}${item.strength ? ` <span class="rx-str">${esc(item.strength)}</span>` : ''}</div>
-      <div class="rx-sig">${esc(item.form || 'Tab')} — ${dose}${days}${item.note ? ` · ${esc(item.note)}` : ''}</div>${urdu}</td>
+      ${urduOnly ? `<div class="rx-ur" style="font-size:1.15em">${f.urdu}${item.days ? ` — ${item.days} دن` : ''}</div><div class="rx-sig" style="opacity:.7">${esc(item.form || 'Tab')} — ${dose}${days}</div>` : `<div class="rx-sig">${esc(item.form || 'Tab')} — ${dose}${days}${item.note ? ` · ${esc(item.note)}` : ''}</div>${urdu}`}</td>
   </tr>`;
 }
 
@@ -65,7 +66,7 @@ export function rxDocument({ store, patient, visit }) {
   ${visit.complaint ? `<div class="rx-row"><span class="rx-lab">C/O</span> ${esc(visit.complaint)}</div>` : ''}
   ${visit.diagnosis ? `<div class="rx-row"><span class="rx-lab">Dx</span> ${esc(visit.diagnosis)}</div>` : ''}
   <div class="rx-symbol">℞</div>
-  <table class="rx-items">${visit.items.map(i => itemLine(i, st.bilingual)).join('')}</table>
+  <table class="rx-items">${visit.items.map(i => itemLine(i, st.rxUrdu ? 'urdu' : st.bilingual)).join('')}</table>
   ${(() => {
     if (visit.type === 'eye' && visit.eye && (visit.eye.od?.sph || visit.eye.os?.sph)) {
       const f = (x) => [x.sph && `sph ${x.sph}`, x.cyl && `cyl ${x.cyl}`, x.axis && `axis ${x.axis}`, x.add && `add ${x.add}`].filter(Boolean).join(', ');
@@ -79,7 +80,9 @@ export function rxDocument({ store, patient, visit }) {
   })()}
   ${(visit.investigations || []).length ? `<div class="rx-inv"><div class="rx-advlab">Investigations advised</div><div class="rx-invlist">${visit.investigations.map(esc).join(' · ')}</div></div>` : ''}
   ${adviceRows.length ? `<div class="rx-adv"><div class="rx-advlab">Advice</div>${adviceRows.map(a =>
-    `<div class="rx-advrow"><span>${esc(a.en)}</span>${st.bilingual ? `<span class="rx-ur">${a.ur}</span>` : ''}</div>`).join('')}</div>` : ''}
+    st.rxUrdu
+      ? `<div class="rx-advrow"><span class="rx-ur" style="font-size:1.1em">${a.ur || a.en}</span></div>`
+      : `<div class="rx-advrow"><span>${esc(a.en)}</span>${st.bilingual ? `<span class="rx-ur">${a.ur}</span>` : ''}</div>`).join('')}</div>` : ''}
   <div class="rx-foot">
     <div>${fup ? `Next visit: <b>${fup}</b>` : ''}${visit.fee && st.showFee ? ` &nbsp;·&nbsp; Fee: ${esc(visit.fee)}` : ''}</div>
     <div class="rx-sign">${st.signatureDataUrl ? `<img src="${st.signatureDataUrl}" style="max-height:14mm;display:block;margin:0 auto 1mm">` : ''}${esc(st.doctorName)}</div>

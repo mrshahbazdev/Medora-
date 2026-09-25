@@ -55,6 +55,28 @@ export default function StatsPanel({ store, update }) {
         </tbody>
       </table>
 
+      <h3 className="ptitle">Insurance / panel claims</h3>
+      <table className="grid">
+        <thead><tr><th>Insurer</th><th>Visits</th><th>Billed</th></tr></thead>
+        <tbody>
+          {(() => { const c = {}; store.visits.filter(v => v.date.startsWith(month)).forEach(v => {
+              const p = store.patients.find(x => x.id === v.patientId);
+              if (p && p.insurance) { c[p.insurance] = c[p.insurance] || { n: 0, amt: 0 }; c[p.insurance].n++; c[p.insurance].amt += Number(v.fee) || 0; } });
+            const e = Object.entries(c);
+            return e.length ? e.map(([k, x]) => <tr key={k}><td>{k}</td><td><b>{x.n}</b></td><td>Rs {x.amt}</td></tr>) : <tr><td colSpan="3" className="muted">No panel patients seen this month.</td></tr>; })()}
+        </tbody>
+      </table>
+
+      <h3 className="ptitle">Doctor time</h3>
+      <table className="grid">
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+          {(() => { const vs = store.visits.filter(v => v.date.startsWith(month) && v.consultMinutes);
+            const avg = vs.length ? Math.round(vs.reduce((a, v) => a + v.consultMinutes, 0) / vs.length) : null;
+            return <tr><td>Avg consult time this month</td><td><b>{avg != null ? avg + ' min' : '—'}</b></td></tr>; })()}
+        </tbody>
+      </table>
+
       <h3 className="ptitle">Expenses by category (P&L)</h3>
       <table className="grid">
         <thead><tr><th>Category</th><th>Amount</th></tr></thead>

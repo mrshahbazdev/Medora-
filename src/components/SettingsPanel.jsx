@@ -45,12 +45,13 @@ export default function SettingsPanel({ store, update, setStore }) {
 
       <h2 className="ptitle">Doctors & rooms</h2>
       <table className="grid" style={{ marginBottom: 10 }}>
-        <thead><tr><th>Doctor</th><th>Qualifications</th><th>Room</th><th></th></tr></thead>
+        <thead><tr><th>Doctor</th><th>Qualifications</th><th>Shift / roster</th><th>Room</th><th></th></tr></thead>
         <tbody>
           {(st.doctors || []).map(d => (
             <tr key={d.id}>
               <td><input className="in" value={d.name} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.name = e.target.value; })} /></td>
               <td><input className="in" value={d.qualifications || ''} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.qualifications = e.target.value; })} /></td>
+              <td><input className="in" style={{ width: 110 }} value={d.shift || ''} placeholder="5–9 PM" title="Shift / roster" onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.shift = e.target.value; })} /></td>
               <td>
                 <select className="in" value={d.room || ''} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.room = e.target.value; })}>
                   <option value="">—</option>
@@ -72,6 +73,7 @@ export default function SettingsPanel({ store, update, setStore }) {
       <h2 className="ptitle">Access &amp; display</h2>
       <div className="frow" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
         <label className="chk"><input type="checkbox" checked={!!st.receptionMode} onChange={e => mut(x => x.receptionMode = e.target.checked)} /> Receptionist mode — show only Token queue &amp; Day book</label>
+        <label className="chk"><input type="checkbox" checked={!!st.rxUrdu} onChange={e => mut(x => x.rxUrdu = e.target.checked)} /> Urdu-only prescription pad (advice + dosage instructions in Urdu)</label>
         <label className="chk"><input type="checkbox" checked={!!st.uiUrdu} onChange={e => mut(x => x.uiUrdu = e.target.checked)} /> Urdu interface (right-to-left navigation)</label>
         <label className="lbl" style={{ width: '100%' }}>Backup folder path (for USB/cloud sync reminder)
           <input className="in" value={st.backupFolder || ''} placeholder="e.g. D:\Medora Backups" onChange={e => mut(x => x.backupFolder = e.target.value)} /></label>

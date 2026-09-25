@@ -372,3 +372,30 @@ export function bundlePrintHtml({ store, patient, visit, rxBody, attachments }) 
   const imgs = (attachments || []).filter(a => a.dataUrl).map(a => `<div style="page-break-before:always;padding:10mm"><img src="${a.dataUrl}" style="max-width:100%"></div>`).join('');
   return rxBody.replace('</body></html>', `${imgs}</body></html>`);
 }
+
+
+export function opdBillHtml({ store, patient, visit }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const items = [{ desc: 'Consultation fee', amt: Number(visit.fee) || 0 }];
+  (visit.items || []).forEach(i => items.push({ desc: `Medicine: ${i.name} ${i.strength || ''}`, amt: Number(i.price) || 0 }));
+  if (visit.procedure?.name) items.push({ desc: `Procedure: ${visit.procedure.name}`, amt: Number(visit.procedure.charge) || 0 });
+  const total = items.reduce((t, i) => t + i.amt, 0);
+  const rows = items.filter(i => i.amt || true).map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.desc)}</td><td style="text-align:right">Rs ${i.amt}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: 80mm auto; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9pt; }
+    .pg { width: 80mm; padding: 6mm; }
+    .hd { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+    .hd b { font-size: 11pt; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; } td, th { padding: 2px 2px; }
+    .tot { border-top: 1px dashed #000; margin-top: 2mm; padding-top: 2mm; font-weight: 800; font-size: 11pt; display: flex; justify-content: space-between; }
+    .foot { text-align: center; font-size: 7.5pt; color: #555; margin-top: 3mm; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')}</b><br>OPD Bill — ${esc(visit.date)}</div>
+    <div><b>${esc(patient.name)}</b> · MRN ${esc(patient.mrn || '')}</div>
+    <table><tr><th>#</th><th>Item</th><th style="text-align:right">Amt</th></tr>${rows}</table>
+    <div class="tot"><span>TOTAL</span><span>Rs ${total}</span></div>
+    <div class="foot">Thank you — get well soon.<br>${esc(st.clinicPhone || '')}</div>
+  </div></body></html>`;
+}

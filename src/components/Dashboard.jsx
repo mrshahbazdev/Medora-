@@ -27,6 +27,11 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
           💾 {backupAge === null ? 'No backup made yet' : `Last backup ${backupAge} days ago`} — click <b>Backup</b> in the top bar to save a copy{store.settings.backupFolder ? ` to ${store.settings.backupFolder}` : ''}.
         </div>)}
       <div className="cards" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+        {(() => {
+          const waits = (store.queue || []).filter(q => q.at === t && q.calledAt && q.createdAt).map(q => Math.round((q.calledAt - q.createdAt) / 60000));
+          const avg = waits.length ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length) : null;
+          return avg != null ? <div className="card"><div className="clabel">Avg wait today</div><div className="cnum">{avg} min</div></div> : null;
+        })()}
         <div className="card"><div className="clabel">In queue today</div><div className="cval">{queue.length}</div><div className="csub">waiting patients</div></div>
         <div className="card ok"><div className="clabel">Seen today</div><div className="cval">{visitsToday.length}</div><div className="csub">prescriptions written</div></div>
         <div className="card"><div className="clabel">Collected today</div><div className="cval">{feesToday || '—'}</div><div className="csub">consultation fees</div></div>
@@ -108,7 +113,7 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
               <div style={{ flex: 1 }}>
                 <b>{p.name}</b> <span className="muted">{a.date === t ? 'today' : `overdue — ${a.date}`}{a.note ? ` · ${a.note}` : ''}</span>
               </div>
-              <button className="btn small ghost" onClick={() => update(s => { s.appointments = s.appointments.filter(x => x.id !== a.id); const d = t; s.queue.push({ id: uid(), patientId: p.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: a.doctorId || '', status: 'waiting', note: a.note || '' }); })}>Check in</button>
+              <button className="btn small ghost" onClick={() => update(s => { s.appointments = s.appointments.filter(x => x.id !== a.id); const d = t; s.queue.push({ id: uid(), patientId: p.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: a.doctorId || '', status: 'waiting', createdAt: Date.now(), note: a.note || '' }); })}>Check in</button>
               <button className="icon" onClick={() => update(s => s.appointments = s.appointments.filter(x => x.id !== a.id))} aria-label="Remove appointment">✕</button>
             </div>
           );

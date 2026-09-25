@@ -86,7 +86,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
                 }} />
               <h2 style={{ margin: 0, flex: 1 }}>{patient.name} <span className="muted">MRN {patient.mrn}</span></h2>
               <button className="btn" onClick={() => newRx(patient.id)}>+ New visit / Rx</button>
-              <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', note: '' }); })}>Add to today's queue</button>
+              <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', createdAt: Date.now(), note: '' }); })}>Add to today's queue</button>
               <button className="btn small ghost" onClick={() => window.api.export.print({ html: patientCardHtml({ store, patient }) })}>Print card</button>
               {visits.some(v => v.type === 'anc' || (v.anc && (v.anc.gravida || v.anc.edd))) &&
                 <button className="btn small ghost" onClick={() => window.api.export.print({ html: ancCardHtml({ store, patient, visits }) })}>ANC card</button>}
@@ -151,6 +151,9 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               <div className="frow">
                 <input className="in" style={{ flex: 1 }} value={patient.chronic} placeholder="Chronic conditions — HTN, DM, asthma…" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).chronic = e.target.value; })} />
                 <input className="in" value={patient.referredBy} placeholder="Referred by (doctor/clinic)" title="Referring doctor or clinic" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).referredBy = e.target.value; })} />
+                <select className="in" style={{ width: 110 }} value={patient.tag || ''} title="Patient tag" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).tag = e.target.value; })}>
+                  <option value="">Tag…</option><option>VIP</option><option>Staff</option><option>Emergency</option><option>Senior</option>
+                </select>
                 <select className="in" value={patient.familyId || ''} title="Family group head" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).familyId = e.target.value; })}>
                   <option value="">Family head — none</option>
                   {store.patients.filter(x => x.id !== patient.id).map(x => <option key={x.id} value={x.id}>{x.name} (MRN {x.mrn})</option>)}

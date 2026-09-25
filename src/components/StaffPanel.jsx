@@ -12,9 +12,12 @@ export default function StaffPanel({ store, update }) {
   const mark = (staffId, present) => update(s => {
     s.attendance = s.attendance || [];
     const ex = s.attendance.find(a => a.staffId === staffId && a.date === date);
-    if (ex) ex.present = present; else s.attendance.push({ id: uid(), staffId, date, present });
+    const timeIn = new Date().toTimeString().slice(0, 5);
+    if (ex) { ex.present = present; if (present && !ex.timeIn) ex.timeIn = timeIn; }
+    else s.attendance.push({ id: uid(), staffId, date, present, timeIn: present ? timeIn : '' });
   });
   const statusOf = (id) => attendance.find(a => a.staffId === id && a.date === date)?.present;
+  const timeOf = (id) => attendance.find(a => a.staffId === id && a.date === date)?.timeIn;
 
   return (
     <div className="panel">
