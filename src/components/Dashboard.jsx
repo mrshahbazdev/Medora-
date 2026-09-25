@@ -1,5 +1,5 @@
 import React from 'react';
-import { ageText, patientVisits, visitPatient } from '../lib/model.js';
+import { ageText, uid, nextToken, patientVisits, visitPatient } from '../lib/model.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -46,6 +46,37 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
           </div>
         );
       })}
+
+      <h2 className="ptitle">Appointments due</h2>
+      {(store.appointments || []).filter(a => a.date <= t).length === 0 ? (
+        <p className="muted">No pending appointments.</p>
+      ) : (
+        (store.appointments || []).filter(a => a.date <= t).sort((a, b) => a.date.localeCompare(b.date)).map(a => {
+          const p = store.patients.find(x => x.id === a.patientId);
+          if (!p) return null;
+          return (
+            <div className="qrow" key={a.id}>
+              <div className="qnum" style={{ background: 'var(--cta)' }}>◷</div>
+              <div style={{ flex: 1 }}>
+                <b>{p.name}</b> <span className="muted">{a.date === t ? 'today' : `overdue — ${a.date}`}{a.note ? ` · ${a.note}` : ''}</span>
+              </div>
+              <button className="btn small ghost" onClick={() => update(s => { s.appointments = s.appointments.filter(x => x.id !== a.id); const d = t; s.queue.push({ id: uid(), patientId: p.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: a.doctorId || '', status: 'waiting', note: a.note || '' }); })}>Check in</button>
+              <button className="icon" onClick={() => update(s => s.appointments = s.appointments.filter(x => x.id !== a.id))} aria-label="Remove appointment">✕</button>
+            </div>
+          );
+        })
+      )}
+
+      <h2 className="ptitle">Top diagnoses this month</h2>
+      {(() => {
+        const m = t.slice(0, 7);
+        const counts = {};
+        store.visits.forEach(v => { if (v.date.startsWith(m) && v.diagnosis) counts[v.diagnosis] = (counts[v.diagnosis] || 0) + 1; });
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        return top.length === 0
+          ? <p className="muted">No diagnoses recorded this month.</p>
+          : <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{top.map(([dx, n]) => <span key={dx} className="dxchip">{dx} <b>×{n}</b></span>)}</div>;
+      })()}
 
       <h2 className="ptitle">Follow-ups due</h2>
       {followUps.length === 0 && <p className="muted">No pending follow-ups.</p>}

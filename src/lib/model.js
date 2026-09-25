@@ -9,6 +9,7 @@ export function emptyStore() {
     visits: [],
     medicines: [],
     queue: [],
+    appointments: [],
     settings: defaultSettings()
   };
 }
@@ -69,6 +70,10 @@ export function visitPatient(store, v) {
 export function patientVisits(store, patientId) {
   return store.visits.filter(v => v.patientId === patientId)
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function newAppointment({ patientId, date, doctorId, note }) {
+  return { id: uid(), patientId, date, doctorId: doctorId || '', note: note || '' };
 }
 
 export function nextToken(store, date) {
@@ -148,6 +153,10 @@ export function sampleStore() {
       advice: [8, 10], followUpDays: 30, fee: '2000' }
   );
 
+  s.appointments = [
+    { id: uid(), patientId: 'p1', date: today, doctorId: 'd1', note: 'BP review' },
+    { id: uid(), patientId: 'p2', date: today, doctorId: 'd1', note: 'Postnatal check' }
+  ];
   s.queue = [
     { id: uid(), patientId: 'p5', at: today, tokenNo: 1, room: 'Room 1', doctorId: 'd1', status: 'waiting', note: '' },
     { id: uid(), patientId: 'p6', at: today, tokenNo: 2, room: 'Room 1', doctorId: 'd1', status: 'waiting', note: '' },

@@ -113,3 +113,37 @@ export function tokenSlipHtml({ store, patient, item }) {
     <div class="foot">Please wait for your turn.<br>اپنا نمبر آنے کا انتظار کریں</div>
   </div></body></html>`;
 }
+
+export function dayRegisterHtml({ store, date, rows }) {
+  const st = store.settings;
+  const total = rows.reduce((t, r) => t + (Number(r.visit.fee) || 0), 0);
+  const tr = rows.map((r, i) => `<tr>
+    <td>${i + 1}</td><td>${esc(r.patient.mrn)}</td><td><b>${esc(r.patient.name)}</b><br><span class="sm">${r.patient.gender ? esc(r.patient.gender) + ', ' : ''}${esc(ageText(r.patient))}</span></td>
+    <td>${esc(r.visit.complaint || '—')}</td><td>${esc(r.visit.diagnosis || '—')}</td>
+    <td>${r.visit.items.length}</td><td class="fee">${Number(r.visit.fee) ? `Rs ${r.visit.fee}` : '—'}</td>
+    <td>${esc((st.doctors || []).find(d => d.id === r.visit.doctorId)?.name || st.doctorName || '')}</td>
+  </tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A4 landscape; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .sheet { width: 297mm; min-height: 210mm; padding: 12mm 14mm; }
+    h1 { font-size: 15pt; color: #134e4a; }
+    .sub { font-size: 8.5pt; color: #64748b; margin: 1mm 0 5mm; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    th { background: #0d9488; color: #fff; text-align: left; padding: 2mm 2.5mm; font-size: 7.5pt; letter-spacing: .05em; text-transform: uppercase; }
+    td { padding: 2mm 2.5mm; border-bottom: 0.4pt solid #cbd5e1; vertical-align: top; }
+    tr:nth-child(even) td { background: #f0fdfa; }
+    .sm { font-size: 7.5pt; color: #64748b; }
+    .fee { font-weight: 700; }
+    .tot { margin-top: 5mm; display: flex; justify-content: space-between; font-size: 10pt; font-weight: 700; }
+    .sign { margin-top: 12mm; display: flex; justify-content: flex-end; font-size: 9pt; }
+  </style></head><body><div class="sheet">
+    <h1>${esc(st.clinicName || 'Clinic')} — OPD Day Register</h1>
+    <div class="sub">${esc(st.clinicAddress || '')} · ${esc(st.clinicPhone || '')} · Date: ${date}</div>
+    <table><thead><tr><th>#</th><th>MRN</th><th>Patient</th><th>Complaint</th><th>Diagnosis</th><th>Meds</th><th>Fee</th><th>Doctor</th></tr></thead>
+    <tbody>${tr || '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:8mm">No visits on this date.</td></tr>'}</tbody></table>
+    <div class="tot"><span>Patients seen: ${rows.length}</span><span>Total collected: Rs ${total}</span></div>
+    <div class="sign"><div>${esc(st.doctorName || 'Doctor')} — Signature</div></div>
+  </div></body></html>`;
+}

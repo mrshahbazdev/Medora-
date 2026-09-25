@@ -5,6 +5,7 @@ import PatientsPanel from './components/PatientsPanel.jsx';
 import QueuePanel from './components/QueuePanel.jsx';
 import MedsPanel from './components/MedsPanel.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
+import DayBookPanel from './components/DayBookPanel.jsx';
 import { exportCsv } from './lib/csv.js';
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'queue', label: 'Queue' },
   { id: 'patients', label: 'Patients' },
   { id: 'meds', label: 'Medicines' },
+  { id: 'daybook', label: 'Day book' },
   { id: 'settings', label: 'Settings' }
 ];
 
@@ -103,6 +105,7 @@ export default function App() {
         {tab === 'queue' && <QueuePanel store={store} update={update} openPatient={openPatient} openRx={openRx} />}
         {tab === 'patients' && <PatientsPanel store={store} update={update} patientId={patientId} setPatientId={setPatientId} rxVisitId={rxVisitId} setRxVisitId={setRxVisitId} />}
         {tab === 'meds' && <MedsPanel store={store} update={update} />}
+        {tab === 'daybook' && <DayBookPanel store={store} update={update} />}
         {tab === 'settings' && <SettingsPanel store={store} update={update} setStore={setStore} />}
       </main>
       <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Nothing leaves this computer.</footer>
