@@ -66,6 +66,16 @@ export default function MedsPanel({ store, update }) {
               <td><input className="in" type="date" style={{ width: 128 }} value={m.expiry || ''} onChange={e => mut(m.id, x => x.expiry = e.target.value)} /></td>
               <td><input className="in num" type="number" min="0" style={{ width: 70 }} value={m.price ?? ''} onChange={e => mut(m.id, x => x.price = e.target.value === '' ? '' : Number(e.target.value))} /></td>
               <td style={{ whiteSpace: 'nowrap' }}>
+                <button className="icon" title="Purchase entry (+stock)" onClick={() => {
+                  const qty = Number(prompt('Qty purchased:', '100')) || 0; if (!qty) return;
+                  const rate = prompt('Rate per unit (Rs):', String(m.price || 0));
+                  const sup = prompt('Supplier:', '');
+                  update(s => {
+                    const mm = s.medicines.find(x => x.id === m.id); if (mm) mm.stock = Number(mm.stock || 0) + qty;
+                    (s.purchases = s.purchases || []).push({ id: uid(), date: new Date().toISOString().slice(0, 10), medId: m.id, qty, rate: Number(rate) || 0, supplier: sup || '' });
+                  });
+                }}>📦</button>
+                <button className="icon" title="Print shelf label" onClick={() => window.api.export.print({ html: medLabelHtml({ store, med: m }) })}>🏷</button>
                 <button className="btn small ghost" onClick={() => sell(m)}>Sell</button>
                 <button className="icon" onClick={() => update(s => s.medicines = s.medicines.filter(x => x.id !== m.id))} aria-label="Delete medicine">✕</button>
               </td>

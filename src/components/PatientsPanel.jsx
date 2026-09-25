@@ -3,7 +3,7 @@ import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid, nextToke
 import { patientCardHtml, ancCardHtml } from '../lib/docsHtml.js';
 import RxEditor from './RxEditor.jsx';
 
-export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId }) {
+export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId, user }) {
   const [q, setQ] = useState('');
 
   // openRx(patientId, 'new') from Dashboard/Queue lands here: materialise the visit.
@@ -56,6 +56,16 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
         <div className="searchrow" style={{ position: 'static', display: 'flex', gap: 6 }}>
           <button className="btn" style={{ flex: 1 }} onClick={addPatient}>+ New patient</button>
           <button className={'chip' + (chronicOnly ? ' on' : '')} onClick={() => setChronicOnly(x => !x)} title="Chronic disease register">Chronic</button>
+          <button className="chip" title="Export patients + visits as Excel" onClick={async () => {
+            const esc = x => String(x ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+            const rows = store.patients.map(p => {
+              const vs = store.visits.filter(v => v.patientId === p.id);
+              return `<tr><td>${esc(p.mrn)}</td><td>${esc(p.name)}</td><td>${esc(p.age)} ${esc(p.ageUnit)}</td><td>${esc(p.gender)}</td><td>${esc(p.phone)}</td><td>${esc(p.chronic)}</td><td>${vs.length}</td><td>${vs.reduce((t, v) => t + (Number(v.fee) || 0), 0)}</td></tr>`;
+            }).join('');
+            const xls = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><meta charset="utf-8"><table><tr><th>MRN</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Chronic</th><th>Visits</th><th>Fees Rs</th></tr>${rows}</table></html>`;
+            await window.api.export.toFolder({ folder: '', name: 'medora-patients.xls', text: xls });
+            alert('Excel file saved to export folder.');
+          }}>Excel</button>
         </div>
         {patients.map(p => (
           <div key={p.id} className={'prow' + (p.id === patientId ? ' on' : '')} onClick={() => { setPatientId(p.id); setRxVisitId(null); }}>
@@ -70,7 +80,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
         {!patient && !rxVisit && <p className="muted">Select a patient or add a new one.</p>}
 
         {rxVisit && patient && (
-          <RxEditor store={store} update={update} patient={patient} visit={rxVisit} close={() => setRxVisitId(null)} />
+          <RxEditor store={store} update={update} patient={patient} visit={rxVisit} close={() => setRxVisitId(null)} user={user} />
         )}
 
         {patient && !rxVisit && (
@@ -88,6 +98,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               <button className="btn" onClick={() => newRx(patient.id)}>+ New visit / Rx</button>
               <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', createdAt: Date.now(), note: '' }); })}>Add to today's queue</button>
               <button className="btn small ghost" onClick={() => window.api.export.print({ html: patientCardHtml({ store, patient }) })}>Print card</button>
+              {patient.insurance && <button className="btn small ghost" title="Insurance claim form" onClick={() => window.api.export.print({ html: claimFormHtml({ store, patient, insurer: patient.insurance, visits: visits.filter(v => v.fee) }) })}>Claim form</button>}
               {visits.some(v => v.type === 'anc' || (v.anc && (v.anc.gravida || v.anc.edd))) &&
                 <button className="btn small ghost" onClick={() => window.api.export.print({ html: ancCardHtml({ store, patient, visits }) })}>ANC card</button>}
               <button className="btn small ghost" title="Merge this patient into another record" onClick={async () => {
@@ -114,6 +125,26 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               }}>Export history</button>
               <button className="icon" onClick={() => delPatient(patient.id)} aria-label="Delete patient">✕</button>
             </div>
+            {(() => {
+              const le = (store.ledger || []).filter(e => e.patientId === patient.id);
+              const bal = le.reduce((t, e) => t + (Number(e.debit) || 0) - (Number(e.credit) || 0), 0);
+              return (
+                <div style={{ margin: '6px 0 10px', padding: 8, background: '#f8fafc', borderRadius: 8 }}>
+                  <b>Ledger</b> — balance {bal > 0 ? <span style={{ color: '#16a34a' }}>Rs {bal} advance</span> : bal < 0 ? <span style={{ color: '#dc2626' }}>Rs {-bal} due (udhaar)</span> : 'settled'}
+                  {' · '}<a href="#" onClick={e => { e.preventDefault(); const amt = prompt('Payment received (Rs):'); if (!amt) return; update(s => (s.ledger = s.ledger || []).push({ id: uid(), date: new Date().toISOString().slice(0, 10), patientId: patient.id, desc: 'Payment received', debit: Number(amt) })); }}>+ Payment</a>
+                  {' · '}<a href="#" onClick={e => { e.preventDefault(); window.api.export.print({ html: ledgerHtml({ store, patient, entries: le }) }); }}>Print</a>
+                  <div className="muted" style={{ marginTop: 4 }}>
+                    {(patient.allergyEvents || []).map((a, i) => <div key={i}>⚠ {a.date} — {a.drug}: {a.reaction} <button className="icon" onClick={() => update(s => { const p = s.patients.find(x => x.id === patient.id); if (p) p.allergyEvents = (p.allergyEvents || []).filter((_, j) => j !== i); })}>✕</button></div>)}
+                    {(() => {
+                      const c = {}; visits.forEach(v => (v.items || []).forEach(i => { if (i.name) c[i.name] = (c[i.name] || 0) + 1; }));
+                      const rep = Object.entries(c).filter(([, n]) => n > 1);
+                      return rep.length ? <div>🔁 Refills: {rep.map(([k, n]) => `${k} ×${n}`).join(', ')}</div> : null;
+                    })()}
+                    <a href="#" onClick={e => { e.preventDefault(); const drug = prompt('Drug:'); if (!drug) return; const rx = prompt('Reaction:', 'rash'); update(s => { const p = s.patients.find(x => x.id === patient.id); if (p) (p.allergyEvents = p.allergyEvents || []).push({ date: new Date().toISOString().slice(0, 10), drug, reaction: rx || '' }); }); }}>+ Allergy event</a>
+                  </div>
+                </div>
+              );
+            })()}
             {(() => {
               const fam = store.patients.filter(x => x.id !== patient.id && (x.familyId === patient.id || (patient.familyId && x.familyId === patient.familyId) || x.id === patient.familyId));
               if (!fam.length) return null;

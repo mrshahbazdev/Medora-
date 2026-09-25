@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS, RX_PRESETS, INVESTIGATION_PRESETS, INTERACTIONS } from '../lib/meds.js';
-import { medicalCertificateHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml, opdHandoutHtml, bundlePrintHtml, opdBillHtml } from '../lib/docsHtml.js';
+import { medicalCertificateHtml, consentFormHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml, opdHandoutHtml, bundlePrintHtml, opdBillHtml } from '../lib/docsHtml.js';
 import { drugInfo } from '../lib/meds.js';
 import { uid, ageText } from '../lib/model.js';
 import { rxDocument, rxPreviewHtml, rxCss } from '../lib/rxHtml.js';
@@ -30,7 +30,7 @@ function DoseCalc({ weight, onApply }) {
   );
 }
 
-export default function RxEditor({ store, update, patient, visit, close }) {
+export default function RxEditor({ store, update, patient, visit, close, user }) {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
   useEffect(() => {
@@ -43,6 +43,9 @@ export default function RxEditor({ store, update, patient, visit, close }) {
   }, []);
   const mut = (fn) => update(s => {
     const v = s.visits.find(x => x.id === visit.id); if (!v) return; fn(v);
+    s.ledger = s.ledger || [];
+    if (v.fee > 0 && !s.ledger.some(e => e.visitId === v.id))
+      s.ledger.push({ id: uid(), visitId: v.id, date: v.date, patientId: v.patientId, desc: 'Consultation fee', credit: Number(v.fee) });
     if (v.followUpDays) {
       const d = new Date(v.date); d.setDate(d.getDate() + Number(v.followUpDays));
       const ad = d.toISOString().slice(0, 10);
@@ -106,6 +109,11 @@ export default function RxEditor({ store, update, patient, visit, close }) {
 
   const print = () => window.api.export.print({ html });
   const printCert = () => window.api.export.print({ html: medicalCertificateHtml({ store, patient, visit, restDays: visit.followUpDays }) });
+  const printConsent = () => {
+    const proc = prompt('Procedure / treatment:', visit.procedure?.name || visit.diagnosis || '');
+    if (proc === null) return;
+    window.api.export.print({ html: consentFormHtml({ store, patient, procedure: proc }) });
+  };
   const printReferral = () => {
     const to = prompt('Refer to (doctor / facility):', 'Consultant, THQ Hospital');
     if (to === null) return;
@@ -159,6 +167,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
           <input className="in num" style={{ width: 80 }} type="number" min="0" placeholder="Discount" title="Discount Rs" value={visit.discount || ''} onChange={e => mut(v => v.discount = Number(e.target.value) || 0)} />
           <button className="btn small ghost" onClick={() => window.api.export.print({ html: opdBillHtml({ store, patient, visit }) })}>Bill</button>
           <button className="btn small ghost" onClick={printCert}>Sick note</button>
+          <button className="btn small ghost" onClick={printConsent}>Consent</button>
           <button className="btn small ghost" title="Copy Rx text to paste in WhatsApp" onClick={() => {
             const lines = [`${store.settings.clinicName || 'Clinic'} — ${visit.date}`, `${patient.name} (${patient.mrn || ''})`, `Dx: ${visit.diagnosis || '-'}`, ...visit.items.map(it => `• ${it.name} ${it.strength || ''} — ${it.freq || ''} x${it.days || ''}d`), ...visit.advice.map(a => `Advice: ${typeof a === 'object' ? a.en : a}`)];
             navigator.clipboard.writeText(lines.join('\n')); alert('Copied — paste in WhatsApp.');
@@ -306,7 +315,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
                 {DURATIONS.map(d => <option key={d} value={d}>{d} days</option>)}
               </select></label>
             <label className="lbl">Fee
-              <input className="in num" type="number" value={visit.fee} onChange={e => mut(v => v.fee = e.target.value)} /></label>
+              <input className="in num" type="number" value={visit.fee} disabled={user && user.role === 'reception'} onChange={e => mut(v => v.fee = e.target.value)} /></label>
           </div>
         </div>
       </div>

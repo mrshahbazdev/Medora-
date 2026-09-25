@@ -57,7 +57,12 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const { doc } = await window.api.store.load();
-      setStore(doc && Array.isArray(doc.patients) ? doc : sampleStore());
+      if (doc && Array.isArray(doc.patients)) {
+        const base = emptyStore();
+        Object.keys(base).forEach(k => { if (doc[k] === undefined) doc[k] = base[k]; });
+        ['ledger', 'purchases', 'otSchedule', 'bloodBank', 'referrals', 'nursing', 'attendance', 'payroll'].forEach(k => { if (!Array.isArray(doc[k])) doc[k] = []; });
+        setStore(doc);
+      } else setStore(sampleStore());
       setVersion(await window.api.app.version().catch(() => ''));
     })();
   }, []);
@@ -184,7 +189,7 @@ export default function App() {
           <main className="body">
         {tab === 'dash' && <Dashboard store={store} update={update} openPatient={openPatient} openRx={openRx} />}
         {tab === 'queue' && <QueuePanel store={store} update={update} openPatient={openPatient} openRx={openRx} />}
-        {tab === 'patients' && <PatientsPanel store={store} update={update} patientId={patientId} setPatientId={setPatientId} rxVisitId={rxVisitId} setRxVisitId={setRxVisitId} />}
+        {tab === 'patients' && <PatientsPanel store={store} update={update} patientId={patientId} setPatientId={setPatientId} rxVisitId={rxVisitId} setRxVisitId={setRxVisitId} user={user} />}
         {tab === 'meds' && <MedsPanel store={store} update={update} />}
         {tab === 'daybook' && <DayBookPanel store={store} update={update} />}
         {tab === 'wards' && <AdmissionsPanel store={store} update={update} />}

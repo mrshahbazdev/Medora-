@@ -476,3 +476,126 @@ export const medLabelHtml = ({ store, med }) => {
     <span style="font-size:6.5pt;letter-spacing:1px">${esc((med.name || '').toUpperCase())} — ${esc(store.settings.clinicName || '')}</span>
   </body></html>`;
 };
+
+// ---- Consent form -----------------------------------------------------------
+export const consentFormHtml = ({ store, patient, procedure }) => `<!doctype html><html><head><style>
+  @page { size: A4; margin: 16mm } body { font: 11pt/1.6 'Segoe UI',sans-serif; color:#111 }
+  .box { border: 1.5px solid #111; border-radius: 6px; padding: 4mm; margin-top: 4mm }
+  .sig { display:flex; gap:20mm; margin-top:14mm } .sig div { flex:1; border-top:1px solid #111; padding-top:2mm; font-size:9pt }
+</style></head><body>
+  <h2 style="text-align:center;margin:0">${store.settings.clinicName || 'Clinic'}</h2>
+  <h3 style="text-align:center">CONSENT FORM / اجازت نامہ</h3>
+  <div class="box">
+    <b>Patient:</b> ${patient.name} — MRN ${patient.mrn || ''} — Age ${patient.age || ''} ${patient.ageUnit || ''}<br/>
+    <b>Procedure / Treatment:</b> ${procedure || '________________'}
+  </div>
+  <p>I, the undersigned, voluntarily consent to the above procedure/treatment. The nature, benefits, risks and alternatives have been explained to me in a language I understand.<br/>
+  <i style="font-family:'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif">میں بالرضا و رغبت مذکورہ طریقہ علاج کی اجازت دیتا ہوں۔ مجھے اس کی نوعیت، فائدے اور نقصانات سمجھا دیے گئے ہیں۔</i></p>
+  <div class="sig"><div>Patient / Guardian sign</div><div>Witness</div><div>Doctor sign &amp; stamp</div></div>
+</body></html>`;
+
+// ---- IPD ward round / progress chart ---------------------------------------
+export const ipdChartHtml = ({ store, patient, admission }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const doc = (store.settings.doctors || []).find(d => d.id === admission.doctorId);
+  const rows = (admission.progress || []).map(p => `<tr><td>${esc(p.at)}</td><td>${esc(p.note)}</td></tr>`).join('');
+  const vrows = (admission.vitals || []).map(v => `<tr><td>${esc(v.at)}</td><td>${esc(v.bp)}</td><td>${esc(v.pulse)}</td><td>${esc(v.temp)}</td><td>${esc(v.spo2)}</td></tr>`).join('');
+  return `<!doctype html><html><head><style>
+    @page { size: A4; margin: 12mm } body { font: 10pt 'Segoe UI',sans-serif } table { width:100%; border-collapse:collapse; margin:3mm 0 }
+    td,th { border:1px solid #cbd5e1; padding:4px 6px; text-align:left } th { background:#0d9488; color:#fff }
+  </style></head><body>
+    <h2 style="margin:0">${store.settings.clinicName || 'Clinic'} — IPD Progress Chart</h2>
+    <p><b>${esc(patient.name)}</b> · MRN ${esc(patient.mrn)} · Ward ${esc(admission.ward)} · Bed ${esc(admission.bed)} · Dr. ${esc(doc?.name || '')}<br/>Admitted ${esc(admission.admittedAt || admission.date)} — Dx: ${esc(admission.dx || patient.dx || '')}</p>
+    <h3>Vitals log</h3><table><thead><tr><th>Time</th><th>BP</th><th>Pulse</th><th>Temp</th><th>SpO2</th></tr></thead><tbody>${vrows || '<tr><td colspan="5">No vitals logged</td></tr>'}</tbody></table>
+    <h3>Progress / orders</h3><table><thead><tr><th>Time</th><th>Note / order</th></tr></thead><tbody>${rows || '<tr><td colspan="2">No notes</td></tr>'}</tbody></table>
+    <p style="margin-top:8mm">Doctor sign: ______________</p></body></html>`;
+};
+
+// ---- Payroll slip -----------------------------------------------------------
+export const payslipHtml = ({ store, staff, month, salary, present }) => `<!doctype html><html><head><style>
+  @page { size: A5 landscape; margin: 10mm } body { font: 10pt 'Segoe UI',sans-serif }
+  table { width:100%; border-collapse:collapse } td { padding:4px 6px; border:1px solid #e2e8f0 }
+  .t { font-size:14pt; font-weight:700; text-align:center }
+</style></head><body>
+  <div class="t">${store.settings.clinicName || 'Clinic'} — Salary Slip</div>
+  <table style="margin-top:4mm">
+    <tr><td><b>Staff</b></td><td>${staff.name} (${staff.role || ''})</td></tr>
+    <tr><td><b>Month</b></td><td>${month}</td></tr>
+    <tr><td><b>Days present</b></td><td>${present}</td></tr>
+    <tr><td><b>Salary</b></td><td>Rs ${salary}</td></tr>
+  </table>
+  <p style="margin-top:8mm">Received by: ______________ &nbsp;&nbsp; Accountant: ______________</p>
+</body></html>`;
+
+// ---- Patient ledger print ---------------------------------------------------
+export const ledgerHtml = ({ store, patient, entries }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let bal = 0;
+  const rows = entries.map(e => { bal += (Number(e.debit) || 0) - (Number(e.credit) || 0); return `<tr><td>${esc(e.date)}</td><td>${esc(e.desc)}</td><td class="r">${e.debit || ''}</td><td class="r">${e.credit || ''}</td><td class="r">${bal}</td></tr>`; }).join('');
+  return `<!doctype html><html><head><style>
+    @page { size: A4; margin: 12mm } body { font: 10pt 'Segoe UI',sans-serif } table { width:100%; border-collapse:collapse }
+    td,th { border:1px solid #e2e8f0; padding:4px 6px } th { background:#0d9488; color:#fff; text-align:left } .r { text-align:right }
+  </style></head><body>
+    <h2 style="margin:0">${store.settings.clinicName || 'Clinic'} — Patient Ledger</h2>
+    <p><b>${esc(patient.name)}</b> · MRN ${esc(patient.mrn)} · ${esc(patient.phone || '')}</p>
+    <table><thead><tr><th>Date</th><th>Description</th><th>Debit (paid)</th><th>Credit (charge)</th><th>Balance</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No entries</td></tr>'}</tbody></table>
+    <p><b>Balance due: Rs ${bal}</b></p></body></html>`;
+};
+
+// ---- Fluid input/output chart ----------------------------------------------
+export const ioChartHtml = ({ store, patient, adm }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rows = (adm.io || []).map(e => `<tr><td>${esc(e.at)}</td><td>${esc(e.kind)}</td><td class="r">${e.ml}</td></tr>`).join('');
+  const inn = (adm.io || []).filter(e => e.kind === 'In').reduce((t, e) => t + (Number(e.ml) || 0), 0);
+  const out = (adm.io || []).filter(e => e.kind === 'Out').reduce((t, e) => t + (Number(e.ml) || 0), 0);
+  return `<!doctype html><html><head><style>
+    @page { size: A4; margin: 12mm } body { font:10pt 'Segoe UI',sans-serif } table { width:100%; border-collapse:collapse }
+    td,th { border:1px solid #cbd5e1; padding:4px 6px } th { background:#0d9488; color:#fff; text-align:left } .r{text-align:right}
+  </style></head><body>
+    <h2 style="margin:0">${store.settings.clinicName || 'Clinic'} — Fluid Input/Output Chart</h2>
+    <p><b>${esc(patient.name)}</b> · MRN ${esc(patient.mrn)} · Ward ${esc(adm.ward)}</p>
+    <table><thead><tr><th>Time</th><th>In / Out</th><th>ml</th></tr></thead><tbody>${rows || '<tr><td colspan="3">No entries</td></tr>'}</tbody></table>
+    <p><b>In: ${inn} ml · Out: ${out} ml · Balance: ${inn - out} ml</b></p></body></html>`;
+};
+
+// ---- Multipara vitals chart (BP + pulse graph) ------------------------------
+export const vitalsChartHtml = ({ store, patient, adm }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const vs = (adm.vitals || []).slice(-24);
+  const pts = (fn) => vs.map((v, i) => `${40 + i * (700 / Math.max(1, vs.length - 1))},${fn(v)}`).join(' ');
+  const sys = v => 200 - ((Number((v.bp || '0/0').split('/')[0]) || 0) - 60) * 1.4;
+  const pul = v => 200 - ((Number(v.pulse) || 0) - 30) * 1.1;
+  const labels = vs.map((v, i) => `<text x="${40 + i * (700 / Math.max(1, vs.length - 1))}" y="215" font-size="7" text-anchor="middle">${esc((v.at || '').slice(11, 16))}</text>`).join('');
+  const svg = vs.length > 1 ? `<svg viewBox="0 0 760 230" style="width:100%;border:1px solid #e2e8f0">
+    ${[80, 100, 120, 140, 160, 180].map((y, i) => `<line x1="40" y1="${200 - i * 26}" x2="740" y2="${200 - i * 26}" stroke="#f1f5f9"/><text x="8" y="${204 - i * 26}" font-size="8" fill="#94a3b8">${60 + i * 20}</text>`).join('')}
+    <polyline points="${pts(sys)}" fill="none" stroke="#dc2626" stroke-width="2"/>
+    <polyline points="${pts(pul)}" fill="none" stroke="#0d9488" stroke-width="2"/>${labels}
+    <text x="60" y="20" font-size="9" fill="#dc2626">— Systolic BP</text><text x="150" y="20" font-size="9" fill="#0d9488">— Pulse</text></svg>` : '<p style="color:#94a3b8">Log 2+ vitals to draw the chart.</p>';
+  const rows = vs.map(v => `<tr><td>${esc(v.at)}</td><td>${esc(v.bp)}</td><td>${esc(v.pulse)}</td><td>${esc(v.temp)}</td><td>${esc(v.spo2)}</td></tr>`).join('');
+  return `<!doctype html><html><head><style>
+    @page { size: A4 landscape; margin: 10mm } body { font:10pt 'Segoe UI',sans-serif } table{width:100%;border-collapse:collapse;margin-top:4mm}
+    td,th{border:1px solid #cbd5e1;padding:3px 6px} th{background:#0d9488;color:#fff;text-align:left}
+  </style></head><body>
+    <h2 style="margin:0">${store.settings.clinicName || 'Clinic'} — Vitals Monitor Chart</h2>
+    <p><b>${esc(patient.name)}</b> · MRN ${esc(patient.mrn)} · Ward ${esc(adm.ward)}</p>
+    ${svg}
+    <table><thead><tr><th>Time</th><th>BP</th><th>Pulse</th><th>Temp</th><th>SpO2</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No vitals logged</td></tr>'}</tbody></table></body></html>`;
+};
+
+// ---- Insurance claim form ---------------------------------------------------
+export const claimFormHtml = ({ store, patient, insurer, visits }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rows = visits.map(v => `<tr><td>${esc(v.date)}</td><td>${esc(v.diagnosis || v.complaint || '')}</td><td class="r">${v.fee || 0}</td></tr>`).join('');
+  const total = visits.reduce((t, v) => t + (Number(v.fee) || 0), 0);
+  return `<!doctype html><html><head><style>
+    @page { size: A4; margin: 14mm } body { font:10.5pt 'Segoe UI',sans-serif } table{width:100%;border-collapse:collapse;margin:3mm 0}
+    td,th{border:1px solid #cbd5e1;padding:4px 6px} th{background:#0d9488;color:#fff;text-align:left} .r{text-align:right}
+    .box{border:1.5px solid #111;border-radius:6px;padding:4mm;margin-bottom:4mm}
+  </style></head><body>
+    <h2 style="margin:0;text-align:center">${store.settings.clinicName || 'Clinic'}</h2>
+    <h3 style="text-align:center">INSURANCE CLAIM FORM</h3>
+    <div class="box"><b>Insurer:</b> ${esc(insurer)}<br/><b>Patient:</b> ${esc(patient.name)} · MRN ${esc(patient.mrn)}<br/><b>Policy #:</b> ${esc(patient.policyNo || '________________')}</div>
+    <table><thead><tr><th>Date</th><th>Diagnosis / service</th><th>Charges Rs</th></tr></thead><tbody>${rows}</tbody></table>
+    <p style="text-align:right"><b>Total claimed: Rs ${total}</b></p>
+    <p style="margin-top:10mm">Attending doctor sign &amp; stamp: ______________</p></body></html>`;
+};

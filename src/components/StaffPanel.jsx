@@ -90,7 +90,10 @@ export default function StaffPanel({ store, update }) {
                           if (ex) ex.amount = amt; else if (amt) s.payroll.push({ id: uid(), staffId: m.id, month, amount: amt, note: '' });
                         });
                       }} /></td>
-                    <td>{pay && <button className="icon" onClick={() => update(s => s.payroll = s.payroll.filter(p => p.id !== pay.id))} aria-label="Clear">✕</button>}</td>
+                    <td>
+                      {pay && <button className="icon" title="Print salary slip" onClick={() => window.api.export.print({ html: payslipHtml({ store, staff: m, month, salary: pay.amount, present: days }) })}>🧾</button>}
+                      {pay && <button className="icon" onClick={() => update(s => s.payroll = s.payroll.filter(p => p.id !== pay.id))} aria-label="Clear">✕</button>}
+                    </td>
                   </tr>
                 );
               })}
