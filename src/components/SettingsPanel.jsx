@@ -23,11 +23,11 @@ function LanConnect({ st, mut }) {
       </label>
       {info.error && <div style={{ color: '#dc2626', marginTop: 6 }}>⚠ Could not start sharing: {info.error}</div>}
       {info.enabled && (<>
-        <div style={{ marginTop: 8 }}>On the other device open Chrome/Edge and type one of these links (access code is built in):</div>
+        <div style={{ marginTop: 8 }}>On the other device open Chrome/Edge and type one of these links, then enter the access code once (it is kept out of the browser history):</div>
         {(info.urls || []).map(u => (
           <div key={u} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <code style={{ fontSize: 14, fontWeight: 700, background: '#eef4ff', padding: '3px 10px', borderRadius: 6 }}>{u}?token={info.token}</code>
-            <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(`${u}?token=${info.token}`)}>Copy</button>
+            <code style={{ fontSize: 14, fontWeight: 700, background: '#eef4ff', padding: '3px 10px', borderRadius: 6 }}>{u}</code>
+            <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(u)}>Copy</button>
           </div>
         ))}
         <div style={{ marginTop: 8 }}>Access code: <code style={{ fontSize: 15, fontWeight: 800, background: '#fef3c7', padding: '2px 10px', borderRadius: 6, letterSpacing: 2 }}>{info.token}</code>

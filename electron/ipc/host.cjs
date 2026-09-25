@@ -59,7 +59,8 @@ function startServer() {
       if (url === '/api/ping') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true,"app":"medora"}'); return; }
 
       if (url.startsWith('/api/')) {
-        const tok = parsed.searchParams.get('token') || req.headers['x-medora-token'] || '';
+        // Access code accepted via header only — never the URL (browser history).
+        const tok = req.headers['x-medora-token'] || '';
         if (tok !== lanCode()) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid access code"}'); return; }
 
         if (url === '/api/store') {
@@ -143,9 +144,11 @@ function startServer() {
           req.on('data', c => body += c);
           req.on('end', () => {
             try {
-              const { storedPin, candidate } = JSON.parse(body || '{}');
+              // Client sends only userId + candidate — the hash never leaves this process.
+              const { userId, pin } = JSON.parse(body || '{}');
+              const row = getRow('users', userId);
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: verifyPinStr(storedPin, candidate) }));
+              res.end(JSON.stringify({ ok: !!(row && row.pin && verifyPinStr(row.pin, pin)) }));
             } catch (e) { res.writeHead(500); res.end(String(e)); }
           });
           return;

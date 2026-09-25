@@ -54,7 +54,7 @@ function keyForDb() {
   try {
     const wrapped = safeStorage.isEncryptionAvailable()
       ? safeStorage.encryptString(key).toString('base64')
-      : key;
+      : key; // dev machines only — packaged builds refuse above
     fs.writeFileSync(kf, wrapped, 'utf8');
   } catch {}
   return key;
@@ -62,6 +62,11 @@ function keyForDb() {
 
 function openDb() {
   if (db) return db;
+  // Packaged builds refuse to run without OS-level key wrapping — patient data
+  // must never sit on disk protected by a plaintext key file.
+  if (app.isPackaged && !safeStorage.isEncryptionAvailable()) {
+    throw new Error('OS encryption unavailable — cannot open encrypted patient database');
+  }
   db = new Database(path.join(app.getPath('userData'), 'medora.db'));
   db.pragma(`key='${keyForDb()}'`);
   db.exec(TABLES);
@@ -107,7 +112,12 @@ function loadDoc() {
   doc.medicines = db.prepare(`SELECT data FROM medicines`).all().map(r => JSON.parse(r.data));
   const s = db.prepare(`SELECT data FROM settings WHERE id = 1`).get();
   doc.settings = s ? JSON.parse(s.data) : {};
-  doc.settings.users = db.prepare(`SELECT data FROM users`).all().map(r => JSON.parse(r.data));
+  // PIN hashes never leave this process — clients get an 's:x' marker only.
+  // PIN verification happens in the main process (auth:verifyUserPin / /api/verify-pin).
+  doc.settings.users = db.prepare(`SELECT data FROM users`).all().map(r => {
+    const u = JSON.parse(r.data);
+    return { ...u, pin: u.pin ? 's:x' : '' };
+  });
   for (const r of db.prepare(`SELECT collection, data FROM records`).all()) {
     (doc[r.collection] = doc[r.collection] || []).push(JSON.parse(r.data));
   }
@@ -199,7 +209,8 @@ function saveSettings(settings, actor) {
   for (const u of (users || [])) {
     newIds.add(u.id);
     const old = oldUsers.get(u.id);
-    const merged = { ...u, pin: (old && u.pin === old.pin) ? old.pin : u.pin };
+    // 's:x' is the client-side marker for an existing PIN — keep the stored hash.
+    const merged = { ...u, pin: (u.pin === 's:x' || (old && u.pin === old.pin)) ? (old ? old.pin : '') : u.pin };
     if (!old || JSON.stringify(old) !== JSON.stringify(merged)) {
       const hashed = hashPins({ settings: { users: [merged] } }).settings.users[0];
       db.prepare(`INSERT OR REPLACE INTO users (id, name, role, pin, data) VALUES (?,?,?,?,?)`)
@@ -247,7 +258,8 @@ function mergeSave(clientDoc, { actor = 'app', baseRev } = {}) {
 }
 
 function stripUsers(s) { const { users, ...r } = s || {}; return r; }
-function usersOf(s) { return (s && s.users) || []; }
+// Compare users in marker form — real hashes must never travel to clients.
+function usersOf(s) { return ((s && s.users) || []).map(u => ({ ...u, pin: u.pin ? 's:x' : '' })); }
 
 function serveDoc() {
   const doc = loadDoc();

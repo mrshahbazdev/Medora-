@@ -221,8 +221,21 @@ export function medClasses(name, generic) {
   return set;
 }
 
+// Common abbreviations/misspellings doctors type in the allergy field.
+const TOK_SYN = { pcn: 'penicillin', pennicillin: 'penicillin', sulpha: 'sulfa', nsaids: 'nsaid', pennicilins: 'penicillin' };
+function normTok(t) {
+  if (TOK_SYN[t]) return TOK_SYN[t];
+  if (t.endsWith('s') && t.length > 3) {
+    const s = t.slice(0, -1);
+    if (ALLERGY_CLASS[s] || TOK_SYN[s]) return TOK_SYN[s] || s;
+  }
+  return t;
+}
+// Known class-level cross-reactivity (softer caution, not a hard allergy).
+const CROSS_REACT = { penicillin: ['cephalosporin'] };
+
 // Returns { hit, how } when an item conflicts with the allergy text, else null.
-// `how` is 'name' (string match) or 'class' (drug-class match).
+// `how` is 'name' (string match), 'class' (drug-class match) or 'cross-reaction'.
 export function allergyConflict(itemName, generic, allergyText) {
   if (!allergyText) return null;
   const toks = allergyText.toLowerCase().split(/[,;\s]+/).filter(t => t.length > 2);
@@ -230,8 +243,11 @@ export function allergyConflict(itemName, generic, allergyText) {
   if (toks.some(t => hay.includes(t))) return { hit: itemName, how: 'name' };
   const classes = medClasses(itemName, generic);
   for (const t of toks) {
-    const cls = ALLERGY_CLASS[t];
+    const cls = ALLERGY_CLASS[normTok(t)];
     if (cls && classes.has(cls)) return { hit: itemName, how: `class (${cls})` };
+    if (cls && CROSS_REACT[cls] && CROSS_REACT[cls].some(c => classes.has(c))) {
+      return { hit: itemName, how: `possible cross-reaction (${cls} → ${CROSS_REACT[cls][0]}, ~1–3%)` };
+    }
   }
   return null;
 }

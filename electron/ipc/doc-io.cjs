@@ -28,14 +28,23 @@ function readDoc() {
   } catch { return null; }
 }
 
+function requireEnc() {
+  // Packaged builds never write patient data unencrypted — on any shipping
+  // platform DPAPI/Keychain is always present; refusing is the safe failure.
+  if (!safeStorage.isEncryptionAvailable() && app.isPackaged) {
+    throw new Error('OS encryption unavailable — refusing to write patient data unencrypted');
+  }
+  return safeStorage.isEncryptionAvailable();
+}
+
 function writeDoc(doc) {
   const text = JSON.stringify(doc);
   try {
-    if (safeStorage.isEncryptionAvailable()) {
+    if (requireEnc()) {
       atomicWrite(docPath(), ENC_TAG + safeStorage.encryptString(text).toString('base64'));
       return;
     }
-  } catch { /* fall through to plaintext */ }
+  } catch (e) { if (app.isPackaged) throw e; /* dev fallback */ }
   atomicWrite(docPath(), text);
 }
 
@@ -51,11 +60,11 @@ function readJsonEnc(file) {
 function writeJsonEnc(file, obj) {
   const text = JSON.stringify(obj);
   try {
-    if (safeStorage.isEncryptionAvailable()) {
+    if (requireEnc()) {
       atomicWrite(file, ENC_TAG + safeStorage.encryptString(text).toString('base64'));
       return;
     }
-  } catch { /* fall through */ }
+  } catch (e) { if (app.isPackaged) throw e; /* dev fallback */ }
   atomicWrite(file, text);
 }
 

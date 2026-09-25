@@ -137,9 +137,9 @@ export function installWebApi() {
       }
     },
     auth: {
-      verifyPin: async (storedPin, candidate) => {
+      verifyPin: async (userId, candidate) => {
         try {
-          const r = await apiFetch('/api/verify-pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storedPin, candidate }) });
+          const r = await apiFetch('/api/verify-pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, pin: candidate }) });
           return (await r.json()).ok;
         } catch { return false; }
       }

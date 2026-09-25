@@ -7,7 +7,7 @@ export default function PinGate({ store, onLogin }) {
   const tryPin = async (v) => {
     if (v.length < 4) { setErr(''); return; }
     for (const u of users) {
-      if (await window.api.auth.verifyPin(u.pin, v)) return onLogin(u);
+      if (await window.api.auth.verifyPin(u.id, v)) return onLogin(u);
     }
     setErr('Wrong PIN'); setPin('');
   };

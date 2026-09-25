@@ -41,7 +41,7 @@ function registerSyncIPC() {
   // Serve the latest store to peers on the LAN.
   const server = http.createServer((req, res) => {
     const u = new URL(req.url || '/', 'http://x');
-    const tok = u.searchParams.get('token') || req.headers['x-medora-token'] || '';
+    const tok = req.headers['x-medora-token'] || '';
     if (u.pathname === '/store' && codeOk(tok)) {
       let doc = latestDoc;
       try { doc = require('../db.cjs').loadDoc() || doc; } catch {}

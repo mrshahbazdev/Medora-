@@ -44,7 +44,10 @@ function registerStoreIPC() {
 
   // PIN gate is enforced in the main process — hashed PINs never leave it
   // in a verifiable form for the renderer to compare.
-  ipcMain.handle('auth:verifyPin', (_e, { storedPin, candidate }) => ({ ok: verifyPinStr(storedPin, candidate) }));
+  ipcMain.handle('auth:verifyUserPin', (_e, { userId, candidate }) => {
+    const row = require('../db.cjs').getRow('users', userId);
+    return { ok: !!(row && row.pin && verifyPinStr(row.pin, candidate)) };
+  });
 
   ipcMain.handle('store:snapshot', (_e, doc, label) => {
     fs.mkdirSync(historyDir(), { recursive: true });

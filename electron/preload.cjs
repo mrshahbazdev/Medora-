@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld('api', {
     onApply: (cb) => ipcRenderer.on('medora:sync-apply', (_e, doc) => cb(doc))
   },
   auth: {
-    verifyPin: (storedPin, candidate) => ipcRenderer.invoke('auth:verifyPin', { storedPin, candidate }).then(r => r.ok)
+    verifyPin: (userId, candidate) => ipcRenderer.invoke('auth:verifyUserPin', { userId, candidate }).then(r => r.ok)
   },
   host: {
     info: () => ipcRenderer.invoke('host:info'),
