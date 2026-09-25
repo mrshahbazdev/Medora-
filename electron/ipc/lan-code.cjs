@@ -15,4 +15,20 @@ function lanCode() {
   return t;
 }
 
-module.exports = { lanCode };
+// Settings → Regenerate: old code dies instantly — every paired PC must
+// re-enter the new one. Used when a staff member who knew the code leaves.
+function rotateLanCode() {
+  const t = crypto.randomBytes(4).toString('hex').toUpperCase();
+  try { fs.writeFileSync(codePath(), t, 'utf8'); } catch {}
+  return t;
+}
+
+// Constant-time compare so the code can't be probed byte-by-byte.
+function codeEq(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const ba = Buffer.from(a), bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
+
+module.exports = { lanCode, rotateLanCode, codeEq };

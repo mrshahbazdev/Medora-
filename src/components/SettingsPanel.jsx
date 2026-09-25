@@ -31,6 +31,10 @@ function LanConnect({ st, mut }) {
           </div>
         ))}
         <div style={{ marginTop: 8 }}>Access code: <code style={{ fontSize: 15, fontWeight: 800, background: '#fef3c7', padding: '2px 10px', borderRadius: 6, letterSpacing: 2 }}>{info.token}</code>
+          <button className="btn small ghost" title="New code — every paired device must re-enter it" onClick={async () => {
+            if (!confirm('Regenerate the access code? Every connected device will be locked out until the new code is entered there.')) return;
+            await window.api.host.rotateCode(); refresh();
+          }}>Regenerate</button>
           <span className="muted"> — without this code no one on the WiFi can read or change the patient data.</span></div>
       </>)}
       {!info.enabled && <div className="muted" style={{ marginTop: 6 }}>Off — the patient database is not reachable from any other device. Access code for pairing: <code style={{ fontWeight: 700 }}>{info.token}</code></div>}

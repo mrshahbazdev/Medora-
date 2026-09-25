@@ -2,7 +2,7 @@ const { ipcMain, BrowserWindow } = require('electron');
 const dgram = require('dgram');
 const http = require('http');
 const crypto = require('crypto');
-const { lanCode } = require('./lan-code.cjs');
+const { lanCode, codeEq } = require('./lan-code.cjs');
 
 // Zero-config LAN sync: every instance broadcasts its store's updatedAt over
 // UDP and serves the latest store JSON over HTTP. Peers with an older store
@@ -21,7 +21,7 @@ function registerSyncIPC() {
   // A peer request is trusted only if it presents THIS PC's access code — so
   // pairing means entering the main PC's code in Settings → Pair code on the
   // other PC (stored as settings.syncCode and sent with every pull).
-  const codeOk = tok => tok && (tok === lanCode() || (pairCode && tok === pairCode));
+  const codeOk = tok => codeEq(tok, lanCode()) || (pairCode && codeEq(tok, pairCode));
 
   // Renderer publishes the newest store after every save.
   ipcMain.handle('sync:publish', (_e, { doc }) => {

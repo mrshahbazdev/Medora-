@@ -4,7 +4,7 @@ const http = require('http');
 const os = require('os');
 const crypto = require('crypto');
 const { app, ipcMain, BrowserWindow } = require('electron');
-const { lanCode } = require('./lan-code.cjs');
+const { lanCode, rotateLanCode, codeEq } = require('./lan-code.cjs');
 const { writeJsonEnc, verifyPinStr } = require('./doc-io.cjs');
 const { serveDoc, mergeSave, loadDoc, listRows, getRow, putRow, patchRow, deleteRow } = require('../db.cjs');
 
@@ -61,7 +61,7 @@ function startServer() {
       if (url.startsWith('/api/')) {
         // Access code accepted via header only — never the URL (browser history).
         const tok = req.headers['x-medora-token'] || '';
-        if (tok !== lanCode()) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid access code"}'); return; }
+        if (!codeEq(tok, lanCode())) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid access code"}'); return; }
 
         if (url === '/api/store') {
           if (req.method === 'GET') {
@@ -187,6 +187,7 @@ function registerHostIPC() {
     if (enabled) startServer(); else stopServer();
     return { ok: true, enabled: !!server, error: serverError };
   });
+  ipcMain.handle('host:rotateCode', () => ({ ok: true, token: rotateLanCode() }));
 }
 
 module.exports = { registerHostIPC };

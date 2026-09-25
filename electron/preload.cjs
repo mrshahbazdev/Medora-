@@ -28,7 +28,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   host: {
     info: () => ipcRenderer.invoke('host:info'),
-    set: (enabled) => ipcRenderer.invoke('host:set', { enabled })
+    set: (enabled) => ipcRenderer.invoke('host:set', { enabled }),
+    rotateCode: () => ipcRenderer.invoke('host:rotateCode')
   },
   app: {
     version: () => ipcRenderer.invoke('app:version'),
