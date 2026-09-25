@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS, RX_PRESETS, INVESTIGATION_PRESETS, INTERACTIONS } from '../lib/meds.js';
-import { medicalCertificateHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml } from '../lib/docsHtml.js';
+import { medicalCertificateHtml, referralLetterHtml, followUpSms, fitnessCertHtml, procedureNoteHtml, opdHandoutHtml, bundlePrintHtml } from '../lib/docsHtml.js';
+import { drugInfo } from '../lib/meds.js';
 import { uid, ageText } from '../lib/model.js';
 import { rxDocument, rxPreviewHtml, rxCss } from '../lib/rxHtml.js';
 
@@ -135,6 +136,9 @@ export default function RxEditor({ store, update, patient, visit, close }) {
             {RX_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
           </select>
           <button className="btn small ghost" onClick={printCert}>Sick note</button>
+          <button className="btn small ghost" onClick={() => window.api.export.print({ html: opdHandoutHtml({ store, patient, visit }) })}>OPD slip</button>
+          {(patient.attachments || []).some(a => a.dataUrl) && <button className="btn small ghost" title="Rx + attached scans"
+            onClick={() => window.api.export.print({ html: bundlePrintHtml({ store, patient, visit, rxBody: html, attachments: patient.attachments }) })}>Print bundle</button>}
           <button className="btn small ghost" onClick={() => { const pur = prompt('Fit for (e.g. job, school, travel):', 'duty'); if (pur !== null) window.api.export.print({ html: fitnessCertHtml({ store, patient, purpose: pur }) }); }}>Fitness cert</button>
           <button className="btn small ghost" onClick={async () => {
             try {
@@ -160,6 +164,9 @@ export default function RxEditor({ store, update, patient, visit, close }) {
         </div>
 
         {allergyHit && <div className="allergy">⚠ {patient.name} is allergic to <b>{patient.allergies}</b> — {allergyHit} may conflict.</div>}
+        {visit.items.map(it => drugInfo(it.name)).filter(Boolean).map((d, i) => (
+          <div key={i} className="muted" style={{ fontSize: 11, marginBottom: 4 }}>💊 {d.class}: {d.dose} — {d.warn}</div>
+        ))}
         {interactions.map(x => <div className="allergy" key={x.warn}>⚠ Interaction: {x.warn}</div>)}
 
         {visit.voiceNote && <div className="frow" style={{ alignItems: 'center', gap: 8 }}><span className="muted">🎙 Voice note:</span><audio controls src={visit.voiceNote} style={{ height: 30 }} /></div>}

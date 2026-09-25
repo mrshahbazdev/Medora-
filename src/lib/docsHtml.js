@@ -323,3 +323,52 @@ export function procedureNoteHtml({ store, patient, visit }) {
     <div class="sig"><span></span><span>____________________<br>${_esc(st.doctorName || '')}</span></div>
   </div></body></html>`;
 }
+
+
+export function ancCardHtml({ store, patient, visits }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const anc = visits.filter(v => v.type === 'anc' || (v.anc && (v.anc.gravida || v.anc.edd)));
+  const latest = anc[0]?.anc || {};
+  const rows = anc.slice().reverse().map(v => `<tr><td>${esc(v.date)}</td><td>${esc(v.vitals?.bp || '')}</td><td>${esc(v.vitals?.weight || '')}</td><td>${esc(v.anc?.fhr || '')}</td><td>${esc(v.anc?.fundal || '')}</td><td>${esc(v.diagnosis || v.complaint || '')}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A5 landscape; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8.5pt; }
+    .pg { width: 210mm; padding: 9mm 11mm; }
+    .hd { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 2mm; margin-bottom: 3mm; }
+    .hd b { font-size: 12pt; color: #134e4a; }
+    .grid2 { display: flex; gap: 14px; margin-bottom: 3mm; }
+    table { width: 100%; border-collapse: collapse; } th { background: #f0fdfa; color: #0d9488; font-size: 7.5pt; }
+    th, td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')} — Antenatal Card</b></div>
+    <div class="grid2"><span><b>${esc(patient.name)}</b> · ${esc(ageText(patient))} · MRN ${esc(patient.mrn || '')}</span><span>G${esc(latest.gravida) || '—'} P${esc(latest.para) || '—'} · <b>EDD: ${esc(latest.edd) || '—'}</b></span></div>
+    <table><thead><tr><th>Date</th><th>BP</th><th>Weight</th><th>FHR</th><th>Fundal</th><th>Notes</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No ANC visits recorded</td></tr>'}</tbody></table>
+  </div></body></html>`;
+}
+
+export function opdHandoutHtml({ store, patient, visit }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A5; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9.5pt; }
+    .pg { width: 148mm; padding: 9mm 11mm; }
+    .hd { text-align: center; border-bottom: 1.5px solid #0d9488; padding-bottom: 2mm; margin-bottom: 3mm; }
+    .hd b { font-size: 12pt; color: #134e4a; }
+    .sec { margin-bottom: 3mm; } .lab { font-size: 7.5pt; color: #0d9488; text-transform: uppercase; letter-spacing: .5px; }
+    .foot { border-top: 1px dashed #94a3b8; margin-top: 4mm; padding-top: 2mm; font-size: 8pt; color: #475569; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')}</b><br><span style="font-size:7.5pt;color:#64748b">Visit summary — ${esc(visit.date)}</span></div>
+    <div class="sec"><b>${esc(patient.name)}</b> · ${esc(ageText(patient))} · MRN ${esc(patient.mrn || '')}</div>
+    ${visit.diagnosis ? `<div class="sec"><div class="lab">Diagnosis</div>${esc(visit.diagnosis)}</div>` : ''}
+    ${(visit.advice || []).length ? `<div class="sec"><div class="lab">Instructions</div><ul style="padding-left:16px">${visit.advice.map(a => `<li>${esc(typeof a === 'object' ? a.en : a)}</li>`).join('')}</ul></div>` : ''}
+    ${visit.followUpDays ? `<div class="sec"><div class="lab">Next visit</div>After <b>${esc(visit.followUpDays)} day(s)</b></div>` : ''}
+    <div class="foot">${esc(st.clinicPhone || '')} · ${esc(st.clinicTimings || '')}</div>
+  </div></body></html>`;
+}
+
+export function bundlePrintHtml({ store, patient, visit, rxBody, attachments }) {
+  const imgs = (attachments || []).filter(a => a.dataUrl).map(a => `<div style="page-break-before:always;padding:10mm"><img src="${a.dataUrl}" style="max-width:100%"></div>`).join('');
+  return rxBody.replace('</body></html>', `${imgs}</body></html>`);
+}

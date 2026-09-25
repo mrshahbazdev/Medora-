@@ -190,3 +190,28 @@ export const INTERACTIONS = [
   { a: 'domperidone', b: 'ciprofloxacin', warn: 'Domperidone + ciprofloxacin: QT prolongation caution' },
   { a: 'metformin', b: 'alcohol', warn: 'Metformin + alcohol: lactic acidosis risk' }
 ];
+
+
+export const DRUG_INFO = {
+  'panadol': { dose: '500mg-1g, 6-8 hourly (max 4g/day)', warn: 'Liver disease — reduce dose', class: 'Analgesic/antipyretic' },
+  'augmentin': { dose: '625mg 8 hourly, 5-7 days', warn: 'Penicillin allergy', class: 'Antibiotic' },
+  'brufen': { dose: '400mg 8 hourly with food', warn: 'Ulcer, renal disease, asthma', class: 'NSAID' },
+  'nexum': { dose: '40mg once daily before breakfast', warn: 'Long-term use — B12/Mg check', class: 'PPI' },
+  'flagyl': { dose: '400mg 8 hourly, 5-7 days', warn: 'No alcohol + 48h after', class: 'Antibiotic' },
+  'cetrizine': { dose: '10mg once daily', warn: 'Drowsiness', class: 'Antihistamine' },
+  'amoxicillin': { dose: '500mg 8 hourly, 5-7 days', warn: 'Penicillin allergy', class: 'Antibiotic' },
+  'ciprofloxacin': { dose: '500mg 12 hourly', warn: 'Not for children/pregnancy; tendon risk', class: 'Antibiotic' },
+  'metformin': { dose: '500mg 12 hourly with meals', warn: 'Renal function check', class: 'Antidiabetic' },
+  'amlodipine': { dose: '5mg once daily', warn: 'Ankle swelling', class: 'Antihypertensive' },
+  'losartan': { dose: '50mg once daily', warn: 'Pregnancy contraindicated', class: 'ARB' },
+  'salbutamol': { dose: '2 puffs PRN / 6 hourly', warn: 'Tremor, tachycardia', class: 'Bronchodilator' },
+  'prednisolone': { dose: 'per condition — taper', warn: 'Never stop abruptly; diabetes/HTN caution', class: 'Steroid' },
+  'artemether': { dose: '80/480mg 12 hourly × 3 days with fat', warn: 'Confirm malaria first', class: 'Antimalarial' },
+  'ferrous': { dose: 'once daily empty stomach', warn: 'Black stools normal; constipation', class: 'Iron supplement' }
+};
+
+export function drugInfo(name) {
+  const n = (name || '').toLowerCase();
+  const key = Object.keys(DRUG_INFO).find(k => n.includes(k));
+  return key ? DRUG_INFO[key] : null;
+}

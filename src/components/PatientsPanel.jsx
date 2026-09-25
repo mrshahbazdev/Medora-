@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid, nextToken } from '../lib/model.js';
-import { patientCardHtml } from '../lib/docsHtml.js';
+import { patientCardHtml, ancCardHtml } from '../lib/docsHtml.js';
 import RxEditor from './RxEditor.jsx';
 
 export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId }) {
@@ -14,12 +14,14 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
       setRxVisitId(v.id);
     }
   }, [rxVisitId, patientId]);
+  const [chronicOnly, setChronicOnly] = useState(false);
   const patients = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return store.patients;
+    const base = chronicOnly ? store.patients.filter(p => p.chronic) : store.patients;
+    if (!needle) return base;
     return store.patients.filter(p =>
       p.name.toLowerCase().includes(needle) || p.mrn.includes(needle) || (p.phone || '').includes(needle));
-  }, [store.patients, q]);
+  }, [store.patients, q, chronicOnly]);
 
   const patient = store.patients.find(p => p.id === patientId) || null;
   const rxVisit = rxVisitId ? store.visits.find(v => v.id === rxVisitId) : null;
@@ -51,8 +53,9 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
         <div className="searchrow">
           <input className="in" placeholder="Search name, MRN or phone…" value={q} onChange={e => setQ(e.target.value)} autoFocus />
         </div>
-        <div className="searchrow" style={{ position: 'static' }}>
-          <button className="btn" style={{ width: '100%' }} onClick={addPatient}>+ New patient</button>
+        <div className="searchrow" style={{ position: 'static', display: 'flex', gap: 6 }}>
+          <button className="btn" style={{ flex: 1 }} onClick={addPatient}>+ New patient</button>
+          <button className={'chip' + (chronicOnly ? ' on' : '')} onClick={() => setChronicOnly(x => !x)} title="Chronic disease register">Chronic</button>
         </div>
         {patients.map(p => (
           <div key={p.id} className={'prow' + (p.id === patientId ? ' on' : '')} onClick={() => { setPatientId(p.id); setRxVisitId(null); }}>
@@ -85,6 +88,23 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               <button className="btn" onClick={() => newRx(patient.id)}>+ New visit / Rx</button>
               <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', note: '' }); })}>Add to today's queue</button>
               <button className="btn small ghost" onClick={() => window.api.export.print({ html: patientCardHtml({ store, patient }) })}>Print card</button>
+              {visits.some(v => v.type === 'anc' || (v.anc && (v.anc.gravida || v.anc.edd))) &&
+                <button className="btn small ghost" onClick={() => window.api.export.print({ html: ancCardHtml({ store, patient, visits }) })}>ANC card</button>}
+              <button className="btn small ghost" title="Merge this patient into another record" onClick={async () => {
+                const target = prompt('Merge INTO MRN (this record will be removed):', '');
+                if (!target) return;
+                const to = store.patients.find(x => x.mrn === target.trim() || x.mrn === target.trim().padStart(4, '0'));
+                if (!to || to.id === patient.id) { alert('Target patient not found.'); return; }
+                if (!confirm(`Move all ${patient.name}'s visits into ${to.name} (MRN ${to.mrn})?`)) return;
+                await window.api.store.snapshot(store, `before merging ${patient.mrn} into ${to.mrn}`);
+                update(s => {
+                  ['visits', 'labs', 'vaccines', 'admissions', 'queue', 'appointments'].forEach(k => {
+                    (s[k] || []).forEach(r => { if (r.patientId === patient.id) r.patientId = to.id; });
+                  });
+                  s.patients = s.patients.filter(x => x.id !== patient.id);
+                });
+                setPatientId(to.id);
+              }}>Merge</button>
               <button className="icon" onClick={() => delPatient(patient.id)} aria-label="Delete patient">✕</button>
             </div>
 

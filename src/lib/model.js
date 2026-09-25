@@ -37,6 +37,7 @@ export function defaultSettings() {
     receptionMode: false,
     uiUrdu: false,
     users: [],
+    letterhead: { logoDataUrl: '', accent: '#0d9488', showMrn: true, showAgeSex: true, showPhone: true },
     syncFolder: '',
     smsTemplates: [
       { id: 's1', name: 'Appointment reminder', text: 'Assalam o Alaikum {name}, aap ki appointment {date} ko {clinic} mein hai. — {doctor}' },

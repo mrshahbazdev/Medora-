@@ -55,6 +55,25 @@ export default function StatsPanel({ store, update }) {
         </tbody>
       </table>
 
+      <h3 className="ptitle">Referral sources</h3>
+      <table className="grid">
+        <thead><tr><th>Referred by</th><th>Patients</th></tr></thead>
+        <tbody>
+          {(() => { const c = {}; store.patients.forEach(p => { const r = p.referredBy || 'Walk-in / self'; c[r] = (c[r] || 0) + 1; });
+            return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([r, n]) => <tr key={r}><td>{r}</td><td><b>{n}</b></td></tr>); })()}
+        </tbody>
+      </table>
+
+      <h3 className="ptitle">Chronic disease register</h3>
+      <table className="grid">
+        <thead><tr><th>Condition</th><th>Patients</th></tr></thead>
+        <tbody>
+          {(() => { const c = {}; store.patients.filter(p => p.chronic).forEach(p => { c[p.chronic] = (c[p.chronic] || 0) + 1; });
+            const e = Object.entries(c).sort((a, b) => b[1] - a[1]);
+            return e.length ? e.map(([k, n]) => <tr key={k}><td>{k}</td><td><b>{n}</b></td></tr>) : <tr><td colSpan="2" className="muted">No chronic patients flagged.</td></tr>; })()}
+        </tbody>
+      </table>
+
       <h3 className="ptitle">Top diagnoses</h3>
       <div>{dx.map(([d, n]) => <span key={d} className="dxchip">{d} <b>×{n}</b></span>)}</div>
 

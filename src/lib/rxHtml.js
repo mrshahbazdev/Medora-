@@ -43,7 +43,8 @@ export function rxDocument({ store, patient, visit }) {
     .filter(Boolean);
 
   const body = `
-  <div class="rxhead ${st.template}">
+  <div class="rxhead ${st.template}"${st.letterhead?.accent ? ` style="border-color:${st.letterhead.accent}"` : ''}>
+    ${st.letterhead?.logoDataUrl ? `<img src="${st.letterhead.logoDataUrl}" style="max-height:16mm;max-width:30mm;object-fit:contain;margin-right:6mm">` : ''}
     <div class="rx-doc">
       <div class="rx-docname">${esc(st.doctorName)}</div>
       <div class="rx-docsub">${esc(st.qualifications)}${st.licenseNo ? ` · ${esc(st.licenseNo)}` : ''}</div>

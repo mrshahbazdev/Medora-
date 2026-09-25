@@ -163,6 +163,37 @@ export default function SettingsPanel({ store, update, setStore }) {
         <button className="btn small ghost" onClick={() => update(s => { s.settings.smsTemplates = s.settings.smsTemplates || []; s.settings.smsTemplates.push({ id: 's' + Date.now(), name: 'New template', text: '{name}, … — {clinic}' }); })}>+ SMS template</button>
       </div>
 
+      <h2 className="ptitle">Letterhead designer</h2>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <div>
+          <label className="lbl">Clinic logo (prints on Rx header)</label>
+          <input className="in" type="file" accept="image/*" onChange={e => {
+            const f = e.target.files[0]; if (!f) return;
+            const r = new FileReader(); r.onload = () => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.logoDataUrl = r.result; }); r.readAsDataURL(f);
+          }} />
+        </div>
+        <label className="lbl">Accent color
+          <input className="in" type="color" style={{ width: 60, height: 38, padding: 2 }} value={(st.letterhead && st.letterhead.accent) || '#0d9488'} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.accent = e.target.value; })} /></label>
+        {st.letterhead?.logoDataUrl && <img src={st.letterhead.logoDataUrl} style={{ height: 44, objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: 6, padding: 2 }} />}
+      </div>
+
+      <h2 className="ptitle">Drug database</h2>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <button className="btn small ghost" onClick={async () => {
+          const f = await window.api.app.openFile({ filters: [{ name: 'CSV', extensions: ['csv'] }] });
+          if (!f || !f.text) return;
+          const lines = f.text.split(/\r?\n/).slice(1);
+          let n = 0;
+          update(s => lines.forEach(l => {
+            const [name, generic, form, strength, freq, days, stock, price] = l.split(',').map(x => x.trim());
+            if (name && !s.medicines.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+              s.medicines.push({ id: 'm' + Date.now() + n, name, generic, form: form || 'Tab', strength, freq: freq || 'BD', days: Number(days) || 7, stock: stock ? Number(stock) : '', price: price ? Number(price) : '', expiry: '' }); n++;
+            }
+          }));
+          alert('Imported ' + lines.length + ' rows from ' + f.name);
+        }}>Import medicines CSV (name,generic,form,strength,freq,days,stock,price)</button>
+      </div>
+
       <h2 className="ptitle">Prescription</h2>
       <div className="frow">
         <label className="lbl">Pad style

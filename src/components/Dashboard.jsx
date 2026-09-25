@@ -35,6 +35,21 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
           <div className="card"><div className="clabel">Vaccines due</div><div className="cval">{(store.vaccines || []).filter(v => !v.doneAt && v.dueAt <= t).length}</div><div className="csub">see Vaccination tab</div></div>)}
       </div>
 
+      {(() => {
+        const ancDue = [];
+        store.patients.forEach(p => {
+          const lv = patientVisits(store, p.id).filter(v => v.anc?.edd).sort((a, b) => b.date.localeCompare(a.date))[0];
+          if (lv && lv.anc.edd && lv.anc.edd <= new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)) ancDue.push({ p, edd: lv.anc.edd });
+        });
+        const chronicOver = store.patients.filter(p => p.chronic && !store.visits.some(v => v.patientId === p.id && v.date >= new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)));
+        if (!ancDue.length && !chronicOver.length) return null;
+        return (
+          <div className="warn" style={{ marginBottom: 14 }}>
+            {ancDue.map(x => <div key={'a' + x.p.id}>🤰 <b>{x.p.name}</b> — EDD {x.edd} (ANC due)</div>)}
+            {chronicOver.slice(0, 6).map(p => <div key={'c' + p.id}>⏰ <b>{p.name}</b> — {p.chronic} follow-up overdue (60+ days)</div>)}
+          </div>
+        );
+      })()}
       <h2 className="ptitle">Today's queue</h2>
       {queue.length === 0 && <p className="muted">Queue is empty. Add patients from the Queue tab or the Patients list.</p>}
       {queue.map((q, i) => {
