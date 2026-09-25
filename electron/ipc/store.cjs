@@ -2,16 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { app, ipcMain } = require('electron');
-const { readDoc, writeDoc, readJsonEnc, writeJsonEnc, hashPins, verifyPinStr } = require('./doc-io.cjs');
+const { readJsonEnc, writeJsonEnc, verifyPinStr } = require('./doc-io.cjs');
+const { serveDoc, mergeSave } = require('../db.cjs');
 
 /**
- * Document store. All of Medora's data is one JSON document written
- * atomically (tmp file + rename), plus timestamped snapshots in history/
- * so a bad edit can never destroy financial records.
- *
- * JSON chosen over SQLite here too: documents are filtered in memory
- * (hundreds of rows is trivial), and a plain file keeps a native
- * dependency out of the packaged installer.
+ * Document store: the live data lives in medora.db (SQLCipher-encrypted
+ * SQLite, WAL) — see ../db.cjs. Writes merge at ROW level via rev baselines,
+ * so two PCs editing different records don't clobber each other. Timestamped
+ * snapshots in history/ stay as encrypted JSON so a bad state can be rolled
+ * back wholesale.
  */
 const MAX_HISTORY = 50;
 
@@ -34,12 +33,14 @@ function atomicWrite(file, text) {
 }
 
 function registerStoreIPC() {
-  ipcMain.handle('store:load', () => ({ doc: readDoc() }));
-
-  ipcMain.handle('store:save', (_e, doc) => {
-    writeDoc(hashPins(doc));
-    return { ok: true };
+  ipcMain.handle('store:load', () => {
+    const { doc } = serveDoc();
+    return { doc };
   });
+
+  // Record-level merge: only the rows the renderer changed are written
+  // (single transaction), so concurrent writers on other PCs don't get wiped.
+  ipcMain.handle('store:save', (_e, doc) => mergeSave(doc, { actor: 'app' }));
 
   // PIN gate is enforced in the main process — hashed PINs never leave it
   // in a verifiable form for the renderer to compare.

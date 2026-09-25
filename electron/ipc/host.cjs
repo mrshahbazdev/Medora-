@@ -5,7 +5,13 @@ const os = require('os');
 const crypto = require('crypto');
 const { app, ipcMain, BrowserWindow } = require('electron');
 const { lanCode } = require('./lan-code.cjs');
-const { readDoc, writeDoc, writeJsonEnc, hashPins, verifyPinStr, atomicWrite } = require('./doc-io.cjs');
+const { writeJsonEnc, verifyPinStr } = require('./doc-io.cjs');
+const { serveDoc, mergeSave, loadDoc, listRows, getRow, putRow, patchRow, deleteRow } = require('../db.cjs');
+
+function notifyRenderer() {
+  const w = BrowserWindow.getAllWindows()[0];
+  if (w) w.webContents.send('medora:sync-apply', loadDoc());
+}
 
 // LAN host mode (OPT-IN): when enabled in Settings, this PC serves Medora to
 // other devices on the same WiFi. Every /api call requires the access code
@@ -58,8 +64,8 @@ function startServer() {
 
         if (url === '/api/store') {
           if (req.method === 'GET') {
-            const doc = readDoc();
-            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(doc));
+            const { doc, rev } = serveDoc();
+            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ doc, rev }));
             return;
           }
           if (req.method === 'POST') {
@@ -67,16 +73,52 @@ function startServer() {
             req.on('data', c => { body += c; if (body.length > 50 * 1024 * 1024) req.destroy(); });
             req.on('end', () => {
               try {
-                const doc = JSON.parse(body);
-                // Refuse to wipe the clinic's record remotely: a POST must carry
-                // real structure, never an emptied patients array.
-                if (!doc || !Array.isArray(doc.patients) || !doc.settings || (doc.patients.length === 0 && !doc.updatedAt)) {
+                const payload = JSON.parse(body);
+                const doc = payload.doc || payload;
+                if (!doc || !Array.isArray(doc.patients) || !doc.settings) {
                   res.writeHead(400); res.end('bad doc'); return;
                 }
-                writeDoc(hashPins(doc));
-                const w = BrowserWindow.getAllWindows()[0];
-                if (w) w.webContents.send('medora:sync-apply', doc);
-                res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
+                // Record-level merge keyed on the rev this client loaded — rows
+                // other devices touched in between are preserved, not wiped.
+                const r = mergeSave(doc, { actor: 'remote', baseRev: payload.baseRev });
+                notifyRenderer();
+                res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(r));
+              } catch (e) { res.writeHead(500); res.end(String(e)); }
+            });
+            return;
+          }
+        }
+
+        // Record-level API: /api/rows/<collection>[?q=] and /api/rows/<collection>/<id>
+        // (patients, visits, medicines have real indexed tables; the rest live
+        // in the generic records store). e.g. GET /api/rows/patients?q=ali
+        const rowMatch = url.match(/^\/api\/rows\/([\w-]+)(?:\/([\w-]+))?$/);
+        if (rowMatch) {
+          const [, col, id] = rowMatch;
+          if (col === 'settings' || col === 'users' || col === 'audit_log') { res.writeHead(403); res.end('forbidden'); return; }
+          if (req.method === 'GET' && !id) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(listRows(col, parsed.searchParams.get('q'))));
+            return;
+          }
+          if (req.method === 'GET' && id) {
+            const row = getRow(col, id);
+            res.writeHead(row ? 200 : 404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(row || { error: 'not found' }));
+            return;
+          }
+          if ((req.method === 'POST' || req.method === 'PUT') || (req.method === 'PATCH' && id) || (req.method === 'DELETE' && id)) {
+            let body = '';
+            req.on('data', c => { body += c; if (body.length > 10 * 1024 * 1024) req.destroy(); });
+            req.on('end', () => {
+              try {
+                let out;
+                if (req.method === 'DELETE') out = deleteRow(col, id, 'remote');
+                else if (req.method === 'PATCH') out = patchRow(col, id, JSON.parse(body || '{}'), 'remote');
+                else out = putRow(col, id ? { ...JSON.parse(body || '{}'), id } : JSON.parse(body || '{}'), 'remote');
+                notifyRenderer();
+                res.writeHead(out.ok === false ? 404 : 200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(out));
               } catch (e) { res.writeHead(500); res.end(String(e)); }
             });
             return;
@@ -135,6 +177,8 @@ function stopServer() {
 }
 
 function registerHostIPC() {
+  // Restart sharing automatically if the user had left it on.
+  try { if ((loadDoc().settings || {}).hostOn) startServer(); } catch {}
   ipcMain.handle('host:info', () => ({ ok: true, enabled: !!server, error: serverError, port: HOST_PORT, token: lanCode(), urls: lanUrls() }));
   ipcMain.handle('host:set', (_e, { enabled }) => {
     if (enabled) startServer(); else stopServer();

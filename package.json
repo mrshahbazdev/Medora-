@@ -23,6 +23,10 @@
   "productName": "Medora",
   "copyright": "Copyright © 2026 Muhammad Shahbaz",
   "asar": true,
+  "asarUnpack": [
+   "**/*.node",
+   "**/prebuilds/**/*"
+  ],
   "directories": {
    "buildResources": "build",
    "output": "release"
@@ -75,6 +79,7 @@
   }
  },
  "devDependencies": {
+  "@electron/rebuild": "^3.7.2",
   "@vitejs/plugin-react": "^4.3.0",
   "concurrently": "^8.2.2",
   "cross-env": "^7.0.3",
@@ -84,6 +89,7 @@
   "wait-on": "^7.2.0"
  },
  "dependencies": {
+  "better-sqlite3-multiple-ciphers": "^11.10.0",
   "react": "^18.3.1",
   "react-dom": "^18.3.1"
  }

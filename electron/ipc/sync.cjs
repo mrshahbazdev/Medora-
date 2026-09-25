@@ -42,9 +42,12 @@ function registerSyncIPC() {
   const server = http.createServer((req, res) => {
     const u = new URL(req.url || '/', 'http://x');
     const tok = u.searchParams.get('token') || req.headers['x-medora-token'] || '';
-    if (u.pathname === '/store' && latestDoc && codeOk(tok)) {
+    if (u.pathname === '/store' && codeOk(tok)) {
+      let doc = latestDoc;
+      try { doc = require('../db.cjs').loadDoc() || doc; } catch {}
+      if (!doc) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(latestDoc));
+      res.end(JSON.stringify(doc));
     } else {
       res.writeHead(404); res.end();
     }

@@ -14,6 +14,7 @@ function LanConnect({ st, mut }) {
     <div className="pcard" style={{ marginBottom: 14, fontSize: 13, lineHeight: 1.7 }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
         <input type="checkbox" checked={!!info.enabled} onChange={async e => {
+          mut(x => x.hostOn = e.target.checked);
           const r = await window.api.host.set(e.target.checked);
           setInfo({ ...info, enabled: r.enabled, error: r.error });
           refresh();

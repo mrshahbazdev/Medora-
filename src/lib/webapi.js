@@ -79,14 +79,24 @@ export function installWebApi() {
     inp.click();
   });
 
+  let lastRev = null;   // the doc revision this client based its edits on
+
   window.api = {
     store: {
       load: async () => {
-        try { const r = await apiFetch('/api/store'); return { doc: await r.json() }; }
-        catch { return { doc: null }; }
+        try {
+          const r = await apiFetch('/api/store');
+          const payload = await r.json();
+          if (payload && payload.doc) { lastRev = payload.rev; return { doc: payload.doc }; }
+          return { doc: payload };
+        } catch { return { doc: null }; }
       },
       save: async doc => {
-        try { await apiFetch('/api/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doc) }); } catch {}
+        try {
+          const r = await apiFetch('/api/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ doc, baseRev: lastRev }) });
+          const out = await r.json();
+          if (out && out.rev != null) lastRev = out.rev;
+        } catch {}
         return { ok: true };
       },
       snapshot: async (doc, label) => {
@@ -112,16 +122,16 @@ export function installWebApi() {
       publish: async () => ({ ok: true }),
       status: async () => ({ ok: true }),
       onApply: cb => {
-        let lastAt = 0, lastText = '';
+        let lastRevSeen = -1;
         setInterval(async () => {
           try {
             const r = await apiFetch('/api/store');
-            const text = await r.text();
-            const doc = JSON.parse(text);
+            const payload = await r.json();
+            const doc = payload && payload.doc ? payload.doc : payload;
             if (!doc || !Array.isArray(doc.patients)) return;
-            const at = doc.updatedAt || 0;
-            if (lastAt === 0) { lastAt = at; lastText = text; return; } // baseline — never stomp local edits on first load
-            if (at > lastAt && text !== lastText) { lastAt = at; lastText = text; cb(doc); }
+            const rev = (payload && payload.rev) ?? -1;
+            if (lastRevSeen < 0) { lastRevSeen = rev; return; } // baseline — never stomp local edits on first load
+            if (rev > lastRevSeen) { lastRevSeen = rev; lastRev = rev; cb(doc); }
           } catch { /* host unreachable — try again */ }
         }, 4000);
       }
