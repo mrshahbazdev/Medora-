@@ -23,6 +23,9 @@ contextBridge.exposeInMainWorld('api', {
     status: () => ipcRenderer.invoke('sync:status'),
     onApply: (cb) => ipcRenderer.on('medora:sync-apply', (_e, doc) => cb(doc))
   },
+  host: {
+    info: () => ipcRenderer.invoke('host:info')
+  },
   app: {
     version: () => ipcRenderer.invoke('app:version'),
     openFile: (opts) => ipcRenderer.invoke('app:openFile', opts || {}),

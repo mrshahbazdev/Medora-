@@ -5,6 +5,7 @@ const { app, BrowserWindow, session, ipcMain, shell, dialog, Menu } = require('e
 const { registerStoreIPC } = require('./ipc/store.cjs');
 const { registerExportIPC } = require('./ipc/export.cjs');
 const { registerSyncIPC } = require('./ipc/sync.cjs');
+const { registerHostIPC } = require('./ipc/host.cjs');
 
 
 const isDev = !app.isPackaged;
@@ -27,6 +28,7 @@ function init() {
   registerStoreIPC();
   registerExportIPC();
   registerSyncIPC();
+  registerHostIPC();
   registerAppIPC();
   createWindow();
 

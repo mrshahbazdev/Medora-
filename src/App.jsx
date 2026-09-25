@@ -13,6 +13,11 @@ import StaffPanel from './components/StaffPanel.jsx';
 import StatsPanel from './components/StatsPanel.jsx';
 import TvDisplay from './components/TvDisplay.jsx';
 import PinGate from './components/PinGate.jsx';
+import { installWebApi } from './lib/webapi.js';
+
+// When this bundle is opened in a plain browser on another PC (LAN host mode)
+// there is no Electron api — install the fetch shim before anything calls it.
+installWebApi();
 import { exportCsv } from './lib/csv.js';
 
 const NAV = [
@@ -36,8 +41,6 @@ const RECEPTION_TABS = ['queue', 'daybook'];
 
 export default function App() {
   if (new URLSearchParams(window.location.search).get('tv') === '1') return <TvDisplay />;
-  if (new URLSearchParams(window.location.search).get('kiosk') === '1' && store)
-    return <div style={{ zoom: 1.6, maxWidth: 1100, margin: '12px auto', padding: '0 16px' }}><QueuePanel store={store} update={update} /></div>;
   const [store, setStore] = useState(null);
   const [user, setUser] = useState(null);
   const idleRef = useRef(null);
@@ -160,6 +163,9 @@ export default function App() {
   };
 
   if (!store) return <div className="boot">Loading…</div>;
+
+  if (new URLSearchParams(window.location.search).get('kiosk') === '1')
+    return <div style={{ zoom: 1.6, maxWidth: 1100, margin: '12px auto', padding: '0 16px' }}><QueuePanel store={store} update={update} /></div>;
 
   if ((store.settings.users || []).length && !user)
     return <PinGate store={store} onLogin={setUser} />;

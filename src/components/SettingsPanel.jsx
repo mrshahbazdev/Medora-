@@ -1,4 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+function LanConnect() {
+  const [info, setInfo] = useState(null);
+  useEffect(() => { window.api.host?.info().then(setInfo).catch(() => {}); }, []);
+  if (!info) return null;
+  if (info.remote) return (
+    <div className="pcard" style={{ marginBottom: 14, fontSize: 13 }}>
+      ✅ Connected to the main PC at <b>{info.urls[0]}</b> — everything you enter here saves on the main PC.
+    </div>
+  );
+  return (
+    <div className="pcard" style={{ marginBottom: 14, fontSize: 13, lineHeight: 1.7 }}>
+      <b>This PC is the main computer</b> — other laptops/PCs on the same WiFi/LAN use Medora from their browser,
+      and all data saves here. On the other device open Chrome/Edge and type:
+      {(info.urls || []).map(u => (
+        <div key={u} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <code style={{ fontSize: 15, fontWeight: 700, background: '#eef4ff', padding: '3px 10px', borderRadius: 6 }}>{u}</code>
+          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(u)}>Copy</button>
+        </div>
+      ))}
+      <div className="muted" style={{ marginTop: 6 }}>No install needed on other devices. If Windows asks, choose “Allow access” for the network.</div>
+    </div>
+  );
+}
 
 export default function SettingsPanel({ store, update, setStore }) {
   const [history, setHistory] = useState(null);
@@ -119,6 +143,9 @@ export default function SettingsPanel({ store, update, setStore }) {
       <div className="frow" style={{ marginBottom: 14 }}>
         <button className="btn small ghost" onClick={() => mut(x => { x.users = x.users || []; x.users.push({ id: 'u' + Date.now(), name: 'Dr. / staff', role: 'doctor', pin: '0000' }); })}>+ User</button>
       </div>
+
+      <h2 className="ptitle">Local connection — use Medora on other PCs</h2>
+      <LanConnect />
 
       <h2 className="ptitle">Sync folder (LAN / USB)</h2>
       <div className="frow" style={{ marginBottom: 8 }}>
