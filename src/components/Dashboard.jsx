@@ -33,9 +33,12 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
         if (!p) return null;
         return (
           <div className="qrow" key={q.id}>
-            <div className="qnum">{i + 1}</div>
+            <div className="qnum">{q.tokenNo || i + 1}</div>
             <div style={{ flex: 1 }}>
               <b>{p.name}</b> <span className="muted">{p.gender}, {ageText(p)} · MRN {p.mrn}</span>
+              <div className="muted" style={{ fontSize: 11.5 }}>
+                Token {q.tokenNo || i + 1}{q.room ? ` · ${q.room}` : ''}{(store.settings.doctors || []).find(d => d.id === q.doctorId) ? ` · ${(store.settings.doctors || []).find(d => d.id === q.doctorId).name}` : ''}
+              </div>
             </div>
             <span className={'pill ' + (q.status === 'in-progress' ? 'st-partial' : 'st-draft')}>{q.status}</span>
             <button className="btn small" onClick={() => openRx(p.id, 'new')}>Write Rx</button>

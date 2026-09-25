@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid } from '../lib/model.js';
+import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid, nextToken } from '../lib/model.js';
 import RxEditor from './RxEditor.jsx';
 
 export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId }) {
@@ -74,7 +74,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
             <div className="etoolbar">
               <h2 style={{ margin: 0, flex: 1 }}>{patient.name} <span className="muted">MRN {patient.mrn}</span></h2>
               <button className="btn" onClick={() => newRx(patient.id)}>+ New visit / Rx</button>
-              <button className="btn small ghost" onClick={() => update(s => s.queue.push({ id: uid(), patientId: patient.id, at: new Date().toISOString().slice(0, 10), status: 'waiting', note: '' }))}>Add to today's queue</button>
+              <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', note: '' }); })}>Add to today's queue</button>
               <button className="icon" onClick={() => delPatient(patient.id)} aria-label="Delete patient">✕</button>
             </div>
 
@@ -105,6 +105,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               </div>
               <div className="frow">
                 <input className="in" style={{ flex: 1 }} value={patient.chronic} placeholder="Chronic conditions — HTN, DM, asthma…" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).chronic = e.target.value; })} />
+                <input className="in" value={patient.referredBy} placeholder="Referred by (doctor/clinic)" title="Referring doctor or clinic" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).referredBy = e.target.value; })} />
               </div>
               <div className="frow">
                 <input className="in" style={{ flex: 1 }} value={patient.address} placeholder="Address" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).address = e.target.value; })} />

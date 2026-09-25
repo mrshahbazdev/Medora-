@@ -22,7 +22,9 @@ function itemLine(item, bilingual) {
  * size: 'a5' (half of A4, the standard pad) or 'a4'.
  */
 export function rxDocument({ store, patient, visit }) {
-  const st = store.settings;
+  const st = { ...store.settings };
+  const doc = (st.doctors || []).find(d => d.id === visit?.doctorId);
+  if (doc) { st.doctorName = doc.name; st.qualifications = doc.qualifications || st.qualifications; }
   const size = st.paperSize === 'a4' ? { w: 210, h: 297 } : { w: 148, h: 210 };
   const fup = visit.followUpDays
     ? (() => { const d = new Date(visit.date); d.setDate(d.getDate() + Number(visit.followUpDays)); return d.toISOString().slice(0, 10); })()

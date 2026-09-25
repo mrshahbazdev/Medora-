@@ -18,6 +18,8 @@ export function defaultSettings() {
     doctorName: '', qualifications: '', licenseNo: '',
     clinicName: '', clinicAddress: '', clinicPhone: '', clinicTimings: '',
     signatureDataUrl: '',
+    doctors: [], // { id, name, qualifications, room }
+    rooms: [],
     paperSize: 'a5', // 'a5' | 'a4'
     template: 'classic', // 'classic' | 'modern'
     bilingual: true,
@@ -31,7 +33,7 @@ export function newPatient() {
   return {
     id: uid(), mrn: '', name: '', age: '', ageUnit: 'years',
     gender: '', phone: '', address: '', allergies: '', notes: '',
-    height: '', chronic: '', photoDataUrl: '',
+    height: '', chronic: '', photoDataUrl: '', referredBy: '',
     createdAt: new Date().toISOString()
   };
 }
@@ -44,6 +46,7 @@ export function newVisit(patientId) {
     items: [], // { id, name, form, strength, freq, days, note }
     investigations: [],
     advice: [],
+    doctorId: '',
     followUpDays: '',
     fee: ''
   };
@@ -68,6 +71,14 @@ export function patientVisits(store, patientId) {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
+export function nextToken(store, date) {
+  return store.queue.filter(q => q.at === date).reduce((m, q) => Math.max(m, q.tokenNo || 0), 0) + 1;
+}
+
+export function doctorOf(store, visit) {
+  return (store.settings.doctors || []).find(d => d.id === visit?.doctorId) || null;
+}
+
 export function freqOf(code) {
   return { code, label: code, pattern: code, urdu: '' };
 }
@@ -82,6 +93,11 @@ export function sampleStore() {
   st.clinicAddress = '14-B Main Boulevard, Gulberg, Lahore';
   st.clinicPhone = '0300-1234567';
   st.clinicTimings = 'Mon–Sat  5:00 PM – 9:00 PM';
+  st.rooms = ['Room 1', 'Room 2', 'Emergency'];
+  st.doctors = [
+    { id: 'd1', name: 'Dr. Ayesha Khan', qualifications: 'MBBS, FCPS (Medicine)', room: 'Room 1' },
+    { id: 'd2', name: 'Dr. Bilal Hussain', qualifications: 'MBBS, MCPS (Family Medicine)', room: 'Room 2' }
+  ];
 
   s.medicines = PRESET_MEDS.map((m, i) => ({ id: `pm${i}`, ...m }));
 
@@ -133,10 +149,10 @@ export function sampleStore() {
   );
 
   s.queue = [
-    { id: uid(), patientId: 'p5', at: today, status: 'waiting', note: '' },
-    { id: uid(), patientId: 'p6', at: today, status: 'waiting', note: '' },
-    { id: uid(), patientId: 'p7', at: today, status: 'waiting', note: '' },
-    { id: uid(), patientId: 'p8', at: today, status: 'waiting', note: '' }
+    { id: uid(), patientId: 'p5', at: today, tokenNo: 1, room: 'Room 1', doctorId: 'd1', status: 'waiting', note: '' },
+    { id: uid(), patientId: 'p6', at: today, tokenNo: 2, room: 'Room 1', doctorId: 'd1', status: 'waiting', note: '' },
+    { id: uid(), patientId: 'p7', at: today, tokenNo: 3, room: 'Room 2', doctorId: 'd2', status: 'waiting', note: '' },
+    { id: uid(), patientId: 'p8', at: today, tokenNo: 4, room: 'Room 2', doctorId: 'd2', status: 'waiting', note: '' }
   ];
   return s;
 }

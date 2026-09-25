@@ -111,6 +111,11 @@ export default function RxEditor({ store, update, patient, visit, close }) {
           <button className="btn small ghost" onClick={close}>← {patient.name}</button>
           <input className="in" type="date" value={visit.date} onChange={e => mut(v => v.date = e.target.value)} />
           {lastVisit && <button className="btn small ghost" onClick={copyLast} title={`Repeat ${lastVisit.date} Rx`}>Repeat last Rx</button>}
+          {(store.settings.doctors || []).length > 0 && (
+            <select className="in" value={visit.doctorId || ''} onChange={e => mut(v => v.doctorId = e.target.value)} title="Doctor signing this Rx">
+              <option value="">{store.settings.doctorName || 'Doctor'}</option>
+              {store.settings.doctors.map(d => <option key={d.id} value={d.id}>{d.name}{d.room ? ` (${d.room})` : ''}</option>)}
+            </select>)}
           <span style={{ flex: 1 }} />
           <select className="in" defaultValue="" onChange={e => { if (e.target.value !== '') applyPreset(Number(e.target.value)); e.target.value = ''; }} title="Apply a full illness preset">
             <option value="" disabled>Rx preset…</option>

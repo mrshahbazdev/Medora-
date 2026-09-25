@@ -43,6 +43,32 @@ export default function SettingsPanel({ store, update, setStore }) {
         </div>
       </div>
 
+      <h2 className="ptitle">Doctors & rooms</h2>
+      <table className="grid" style={{ marginBottom: 10 }}>
+        <thead><tr><th>Doctor</th><th>Qualifications</th><th>Room</th><th></th></tr></thead>
+        <tbody>
+          {(st.doctors || []).map(d => (
+            <tr key={d.id}>
+              <td><input className="in" value={d.name} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.name = e.target.value; })} /></td>
+              <td><input className="in" value={d.qualifications || ''} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.qualifications = e.target.value; })} /></td>
+              <td>
+                <select className="in" value={d.room || ''} onChange={e => mut(x => { const dd = x.doctors.find(z => z.id === d.id); dd.room = e.target.value; })}>
+                  <option value="">—</option>
+                  {(st.rooms || []).map(r => <option key={r}>{r}</option>)}
+                </select>
+              </td>
+              <td><button className="icon" onClick={() => mut(x => x.doctors = x.doctors.filter(z => z.id !== d.id))} aria-label="Remove doctor">✕</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <button className="btn small ghost" onClick={() => mut(x => { x.doctors = x.doctors || []; x.doctors.push({ id: 'd' + Date.now(), name: 'Dr. …', qualifications: '', room: '' }); })}>+ Doctor</button>
+        <label className="lbl" style={{ flex: 1 }}>Rooms (comma separated)
+          <input className="in" value={(st.rooms || []).join(', ')} onChange={e => mut(x => x.rooms = e.target.value.split(',').map(r => r.trim()).filter(Boolean))} /></label>
+      </div>
+      <p className="muted">Queue tokens carry the doctor & room; the selected doctor's name prints on that visit's prescription.</p>
+
       <h2 className="ptitle">Prescription</h2>
       <div className="frow">
         <label className="lbl">Paper size

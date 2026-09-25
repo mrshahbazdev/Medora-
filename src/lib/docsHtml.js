@@ -81,3 +81,35 @@ export function followUpSms({ store, patient, visit }) {
     `Your follow-up visit is due on ${due}. Timings: ${st.clinicTimings || 'clinic hours'}. ` +
     `Call ${st.clinicPhone || 'the clinic'} to confirm.`;
 }
+
+
+// ---- Queue token slip: small slip the receptionist prints and hands over ----
+export function tokenSlipHtml({ store, patient, item }) {
+  const st = store.settings;
+  const doc = (st.doctors || []).find(d => d.id === item.doctorId);
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: 80mm 120mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .slip { width: 80mm; min-height: 110mm; padding: 8mm; text-align: center; }
+    .clinic { font-size: 9pt; font-weight: 700; border-bottom: 1px dashed #94a3b8; padding-bottom: 3mm; }
+    .clinic-sub { font-size: 6.5pt; color: #64748b; font-weight: 400; }
+    .tok { font-size: 34pt; font-weight: 800; color: #0d9488; margin: 6mm 0 1mm; }
+    .toklab { font-size: 7pt; letter-spacing: 0.15em; color: #64748b; text-transform: uppercase; }
+    .pname { font-size: 11pt; font-weight: 700; margin-top: 5mm; }
+    .meta { font-size: 8pt; color: #475569; margin-top: 1mm; }
+    .rule { border-top: 1px dashed #94a3b8; margin: 5mm 0 3mm; }
+    .foot { font-size: 7pt; color: #64748b; }
+  </style></head><body><div class="slip">
+    <div class="clinic">${esc(st.clinicName || 'Clinic')}<div class="clinic-sub">${esc(st.clinicAddress || '')} · ${esc(st.clinicPhone || '')}</div></div>
+    <div class="toklab">Token No.</div>
+    <div class="tok">${item.tokenNo ?? '—'}</div>
+    <div class="pname">${esc(patient.name)}</div>
+    <div class="meta">${patient.gender ? esc(patient.gender) + ', ' : ''}${esc(ageText(patient))} · MRN ${esc(patient.mrn)}</div>
+    <div class="rule"></div>
+    <div class="meta">${doc ? `<b>${esc(doc.name)}</b>${doc.room ? ' — ' + esc(doc.room) : ''}` : (item.room ? esc(item.room) : '')}</div>
+    <div class="meta">${esc(item.at)}${st.clinicTimings ? ' · ' + esc(st.clinicTimings) : ''}</div>
+    <div class="rule"></div>
+    <div class="foot">Please wait for your turn.<br>اپنا نمبر آنے کا انتظار کریں</div>
+  </div></body></html>`;
+}
