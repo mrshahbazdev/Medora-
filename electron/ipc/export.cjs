@@ -6,6 +6,17 @@ const { toPDF, printHTML } = require('../print/render.cjs');
 function registerExportIPC() {
   const win = () => BrowserWindow.getAllWindows()[0];
 
+  // Write a text file into a fixed folder (USB/LAN sync destination the user configured).
+  ipcMain.handle('export:toFolder', (_e, { folder, name, text }) => {
+    try {
+      if (!folder) return { ok: false, error: 'no folder' };
+      fs.mkdirSync(folder, { recursive: true });
+      const fp = path.join(folder, name);
+      fs.writeFileSync(fp, text, 'utf8');
+      return { ok: true, filePath: fp };
+    } catch (err) { return { ok: false, error: String(err) }; }
+  });
+
   // Vector PDF: real text, selectable and searchable, fonts embedded by Chromium.
   ipcMain.handle('export:pdf', async (_e, { html, suggestedName }) => {
     const res = await dialog.showSaveDialog(win(), {

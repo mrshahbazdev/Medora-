@@ -65,6 +65,17 @@ export function rxDocument({ store, patient, visit }) {
   ${visit.diagnosis ? `<div class="rx-row"><span class="rx-lab">Dx</span> ${esc(visit.diagnosis)}</div>` : ''}
   <div class="rx-symbol">℞</div>
   <table class="rx-items">${visit.items.map(i => itemLine(i, st.bilingual)).join('')}</table>
+  ${(() => {
+    if (visit.type === 'eye' && visit.eye && (visit.eye.od?.sph || visit.eye.os?.sph)) {
+      const f = (x) => [x.sph && `sph ${x.sph}`, x.cyl && `cyl ${x.cyl}`, x.axis && `axis ${x.axis}`, x.add && `add ${x.add}`].filter(Boolean).join(', ');
+      return `<div class="rx-row"><span class="rx-lab">Refraction</span> <b>OD:</b> ${esc(f(visit.eye.od)) || '—'} &nbsp;·&nbsp; <b>OS:</b> ${esc(f(visit.eye.os)) || '—'}</div>`;
+    }
+    if (visit.type === 'dental' && (visit.dental || []).length)
+      return `<div class="rx-row"><span class="rx-lab">Teeth</span> ${visit.dental.map(t => `#${t}`).join(', ')}</div>`;
+    if (visit.type === 'anc' && visit.anc && (visit.anc.edd || visit.anc.fhr || visit.anc.gravida))
+      return `<div class="rx-row"><span class="rx-lab">ANC</span> G${esc(visit.anc.gravida) || '—'} P${esc(visit.anc.para) || '—'} · EDD ${esc(visit.anc.edd) || '—'} · FHR ${esc(visit.anc.fhr) || '—'} · Fundal ${esc(visit.anc.fundal) || '—'}</div>`;
+    return '';
+  })()}
   ${(visit.investigations || []).length ? `<div class="rx-inv"><div class="rx-advlab">Investigations advised</div><div class="rx-invlist">${visit.investigations.map(esc).join(' · ')}</div></div>` : ''}
   ${adviceRows.length ? `<div class="rx-adv"><div class="rx-advlab">Advice</div>${adviceRows.map(a =>
     `<div class="rx-advrow"><span>${esc(a.en)}</span>${st.bilingual ? `<span class="rx-ur">${a.ur}</span>` : ''}</div>`).join('')}</div>` : ''}

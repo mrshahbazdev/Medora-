@@ -11,6 +11,12 @@ export function emptyStore() {
     queue: [],
     appointments: [],
     admissions: [],
+    labs: [],
+    vaccines: [],
+    staff: [],
+    attendance: [],
+    payroll: [],
+    insurers: [],
     expenses: [],
     branches: [],
     settings: defaultSettings()
@@ -28,6 +34,11 @@ export function defaultSettings() {
     padStyle: 'letter', // 'letter' | 'label' | 'form'
     receptionMode: false,
     uiUrdu: false,
+    smsTemplates: [
+      { id: 's1', name: 'Appointment reminder', text: 'Assalam o Alaikum {name}, aap ki appointment {date} ko {clinic} mein hai. — {doctor}' },
+      { id: 's2', name: 'Report ready', text: '{name}, aap ki lab report {clinic} se collect ho sakti hai. — {doctor}' },
+      { id: 's3', name: 'Follow-up due', text: '{name}, aap ka check-up due hai. Please visit {clinic}. — {doctor}' }
+    ],
     backupFolder: '',
     lastBackupAt: '',
     wards: ['General Ward', 'Private Room', 'ICU'],
@@ -49,6 +60,14 @@ export function newPatient() {
   };
 }
 
+export const newLab = (patientId, { test, result, note }) => ({
+  id: uid(), patientId, test: test || '', result: result || '', note: note || '', date: new Date().toISOString().slice(0, 10)
+});
+
+export const newVaccine = (patientId, { vaccine, dueAt }) => ({
+  id: uid(), patientId, vaccine: vaccine || '', dueAt: dueAt || '', doneAt: ''
+});
+
 export function newVisit(patientId) {
   return {
     id: uid(), patientId, date: new Date().toISOString().slice(0, 10),
@@ -56,6 +75,10 @@ export function newVisit(patientId) {
     vitals: { bp: '', pulse: '', temp: '', weight: '', spo2: '' },
     items: [], // { id, name, form, strength, freq, days, note }
     investigations: [],
+    type: 'opd',
+    eye: { od: { sph: '', cyl: '', axis: '', add: '' }, os: { sph: '', cyl: '', axis: '', add: '' } },
+    dental: [],
+    anc: { gravida: '', para: '', edd: '', fhr: '', fundal: '' },
     advice: [],
     doctorId: '',
     followUpDays: '',

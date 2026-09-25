@@ -31,6 +31,8 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
         <div className="card ok"><div className="clabel">Seen today</div><div className="cval">{visitsToday.length}</div><div className="csub">prescriptions written</div></div>
         <div className="card"><div className="clabel">Collected today</div><div className="cval">{feesToday || '—'}</div><div className="csub">consultation fees</div></div>
         <div className="card"><div className="clabel">Patients on record</div><div className="cval">{store.patients.length}</div><div className="csub">{store.visits.length} visits total</div></div>
+        {(store.vaccines || []).some(v => !v.doneAt && v.dueAt <= t) && (
+          <div className="card"><div className="clabel">Vaccines due</div><div className="cval">{(store.vaccines || []).filter(v => !v.doneAt && v.dueAt <= t).length}</div><div className="csub">see Vaccination tab</div></div>)}
       </div>
 
       <h2 className="ptitle">Today's queue</h2>

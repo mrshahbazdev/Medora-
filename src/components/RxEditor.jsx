@@ -93,8 +93,18 @@ export default function RxEditor({ store, update, patient, visit, close }) {
     window.api.export.print({ html: referralLetterHtml({ store, patient, visit, toDoctor: to, reason }) });
   };
   const copySms = () => {
-    navigator.clipboard.writeText(followUpSms({ store, patient, visit }));
-    alert('Follow-up SMS copied — paste it into WhatsApp/SMS to send.');
+    const tpl = (store.settings.smsTemplates || [])[0];
+    let text = followUpSms({ store, patient, visit });
+    if (tpl) {
+      const doc = (store.settings.doctors || []).find(d => d.id === visit.doctorId) || (store.settings.doctors || [])[0];
+      text = tpl.text
+        .replaceAll('{name}', patient.name)
+        .replaceAll('{date}', visit.date)
+        .replaceAll('{clinic}', store.settings.clinicName || 'Clinic')
+        .replaceAll('{doctor}', doc?.name || store.settings.doctorName || '');
+    }
+    navigator.clipboard.writeText(text);
+    alert('SMS copied — paste it into WhatsApp/SMS to send.');
   };
   const savePdf = () => window.api.export.pdf({ html, suggestedName: `${patient.name}-Rx-${visit.date}.pdf` });
   const delVisit = async () => {
@@ -116,6 +126,9 @@ export default function RxEditor({ store, update, patient, visit, close }) {
               <option value="">{store.settings.doctorName || 'Doctor'}</option>
               {store.settings.doctors.map(d => <option key={d.id} value={d.id}>{d.name}{d.room ? ` (${d.room})` : ''}</option>)}
             </select>)}
+          <select className="in" value={visit.type || 'opd'} onChange={e => mut(v => v.type = e.target.value)} title="Visit type">
+            <option value="opd">OPD</option><option value="eye">Eye</option><option value="dental">Dental</option><option value="anc">Antenatal</option>
+          </select>
           <span style={{ flex: 1 }} />
           <select className="in" defaultValue="" onChange={e => { if (e.target.value !== '') applyPreset(Number(e.target.value)); e.target.value = ''; }} title="Apply a full illness preset">
             <option value="" disabled>Rx preset…</option>
@@ -150,6 +163,41 @@ export default function RxEditor({ store, update, patient, visit, close }) {
                 <label className="lbl" key={k}>{lab}
                   <input className="in num" value={visit.vitals[k]} onChange={e => mut(v => v.vitals[k] = e.target.value)} />
                 </label>
+              ))}
+            </div>
+          )}
+
+          {(visit.type === 'eye') && (
+            <div className="frow">
+              {[['od', 'Right eye (OD)'], ['os', 'Left eye (OS)']].map(([side, lab]) => (
+                <div key={side} style={{ flex: 1 }}>
+                  <div className="muted" style={{ fontSize: 11.5, marginBottom: 4 }}>{lab}</div>
+                  <div className="frow">
+                    {[['sph', 'SPH'], ['cyl', 'CYL'], ['axis', 'Axis'], ['add', 'ADD']].map(([k, l]) => (
+                      <label className="lbl" key={k} style={{ flex: 1 }}>{l}
+                        <input className="in num" value={visit.eye?.[side]?.[k] || ''} onChange={e => mut(v => { v.eye = v.eye || { od: {}, os: {} }; v.eye[side][k] = e.target.value; })} /></label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {(visit.type === 'dental') && (
+            <div>
+              <label className="lbl" style={{ marginBottom: 6 }}>Tooth chart — click to mark</label>
+              <div className="freqgrid" style={{ marginBottom: 12 }}>
+                {Array.from({ length: 32 }, (_, i) => i + 1).map(n => (
+                  <button key={n} type="button" className={'chip' + ((visit.dental || []).includes(n) ? ' on' : '')}
+                    onClick={() => mut(v => { v.dental = v.dental || []; v.dental = v.dental.includes(n) ? v.dental.filter(x => x !== n) : [...v.dental, n].sort((a, b) => a - b); })}>{n}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {(visit.type === 'anc') && (
+            <div className="frow">
+              {[['gravida', 'Gravida'], ['para', 'Para'], ['edd', 'EDD (date)'], ['fhr', 'Fetal HR'], ['fundal', 'Fundal height']].map(([k, lab]) => (
+                <label className="lbl" key={k} style={{ flex: 1 }}>{lab}
+                  <input className="in" type={k === 'edd' ? 'date' : 'text'} value={visit.anc?.[k] || ''} onChange={e => mut(v => { v.anc = v.anc || {}; v.anc[k] = e.target.value; })} /></label>
               ))}
             </div>
           )}

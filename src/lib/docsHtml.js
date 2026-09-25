@@ -207,3 +207,64 @@ export function dischargeSummaryHtml({ store, patient, adm }) {
     <div class="sig"><div>Date</div><div>${esc(doc ? doc.name : (st.doctorName || 'Doctor'))}</div></div>
   </div></body></html>`;
 }
+
+
+export function labReportHtml({ store, patient, labs, visit }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rows = labs.map(l => `<tr><td>${esc(l.test)}</td><td><b>${esc(l.result)}</b></td><td>${esc(l.note || '')}</td><td>${esc(l.date)}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A5; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .pg { width: 210mm; min-height: 148mm; padding: 10mm 12mm; font-size: 9.5pt; }
+    .hd { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 2.5mm; margin-bottom: 4mm; }
+    .hd b { font-size: 14pt; color: #134e4a; } .hd span { font-size: 8pt; color: #64748b; }
+    .pt { display: flex; gap: 16px; font-size: 8.5pt; margin-bottom: 3mm; color: #334155; }
+    table { width: 100%; border-collapse: collapse; } th { background: #f0fdfa; color: #0d9488; font-size: 8pt; text-align: left; }
+    th, td { border: 1px solid #cbd5e1; padding: 4px 8px; }
+    .sig { margin-top: 12mm; text-align: right; font-size: 8pt; color: #475569; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')} — Lab Report</b><span>${esc(st.clinicAddress || '')} · ${esc(st.clinicPhone || '')}</span></div>
+    <div class="pt"><span><b>Patient:</b> ${esc(patient.name)}</span><span><b>MRN:</b> ${esc(patient.mrn || '')}</span><span><b>Age/Sex:</b> ${esc(ageText(patient))}${patient.sex ? ' / ' + esc(patient.sex) : ''}</span><span><b>Date:</b> ${labs[0] ? esc(labs[0].date) : ''}</span></div>
+    <table><thead><tr><th style="width:35%">Test</th><th style="width:30%">Result</th><th style="width:20%">Reference / note</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="sig">Checked by: ______________ &nbsp;&nbsp; ${esc((st.doctors || [])[0]?.name || st.doctorName || '')}</div>
+  </div></body></html>`;
+}
+
+export function vaccinationCardHtml({ store, patient, vaccines }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rows = vaccines.map(v => `<tr><td>${esc(v.vaccine)}</td><td>${esc(v.dueAt)}</td><td>${v.doneAt ? '✓ ' + esc(v.doneAt) : '—'}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A5 landscape; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .pg { width: 210mm; min-height: 148mm; padding: 10mm 12mm; font-size: 9.5pt; }
+    .hd { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 2mm; margin-bottom: 4mm; }
+    .hd b { font-size: 13pt; color: #134e4a; } .hd span { font-size: 8pt; color: #64748b; }
+    .pt { font-size: 8.5pt; margin-bottom: 3mm; color: #334155; }
+    table { width: 100%; border-collapse: collapse; } th { background: #f0fdfa; color: #0d9488; font-size: 8pt; }
+    th, td { border: 1px solid #cbd5e1; padding: 4px 8px; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')} — Vaccination Card</b><span>${esc(st.clinicPhone || '')}</span></div>
+    <div class="pt"><b>${esc(patient.name)}</b> · ${esc(ageText(patient))} · MRN ${esc(patient.mrn || '')} · Father/Guardian: ${esc(patient.guardian || '')}</div>
+    <table><thead><tr><th>Vaccine</th><th>Due date</th><th>Given on</th></tr></thead><tbody>${rows}</tbody></table>
+  </div></body></html>`;
+}
+
+export function monthlyReportHtml({ store, month, rows }) {
+  const st = store.settings;
+  const esc = (x) => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const body = rows.map(r => `<tr><td>${esc(r.label)}</td><td style="text-align:right"><b>${esc(r.value)}</b></td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A4; margin: 0; } * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .pg { width: 210mm; min-height: 297mm; padding: 14mm; font-size: 10pt; }
+    .hd { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 3mm; margin-bottom: 5mm; }
+    .hd b { font-size: 15pt; color: #134e4a; } .hd span { font-size: 8.5pt; color: #64748b; }
+    table { width: 100%; border-collapse: collapse; } td, th { border-bottom: 1px solid #e2e8f0; padding: 6px 8px; }
+  </style></head><body><div class="pg">
+    <div class="hd"><b>${esc(st.clinicName || 'Clinic')} — Monthly Report</b><span>${esc(month)}</span></div>
+    <table>${body}</table>
+    <div style="margin-top:14mm;text-align:right;font-size:8.5pt;color:#475569">Prepared by: ______________</div>
+  </div></body></html>`;
+}

@@ -97,6 +97,38 @@ export default function SettingsPanel({ store, update, setStore }) {
         <button className="btn small ghost" onClick={() => mut(x => { x.branches = x.branches || []; x.branches.push({ id: 'b' + Date.now(), name: 'Branch …' }); })}>+ Branch</button>
       </div>
 
+      <h2 className="ptitle">Insurance panel &amp; SMS templates</h2>
+      <table className="grid" style={{ marginBottom: 10 }}>
+        <tbody>
+          {(st.insurers || store.insurers || []).length === 0 && (store.insurers || []).length === 0 && null}
+          {(store.insurers || []).map(i => (
+            <tr key={i.id}>
+              <td><input className="in" value={i.name} onChange={e => update(s => { s.insurers.find(x => x.id === i.id).name = e.target.value; })} /></td>
+              <td><input className="in" placeholder="Contact" value={i.contact || ''} onChange={e => update(s => { s.insurers.find(x => x.id === i.id).contact = e.target.value; })} /></td>
+              <td><button className="icon" onClick={() => update(s => s.insurers = s.insurers.filter(x => x.id !== i.id))}>✕</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <button className="btn small ghost" onClick={() => update(s => { s.insurers = s.insurers || []; s.insurers.push({ id: 'i' + Date.now(), name: 'Panel company…', contact: '' }); })}>+ Insurance / panel company</button>
+      </div>
+      <table className="grid" style={{ marginBottom: 10 }}>
+        <thead><tr><th>SMS template name</th><th>Text ({'{name} {date} {clinic} {doctor}'} placeholders)</th><th></th></tr></thead>
+        <tbody>
+          {(st.smsTemplates || []).map(t => (
+            <tr key={t.id}>
+              <td><input className="in" value={t.name} onChange={e => update(s => { const x = s.settings.smsTemplates.find(y => y.id === t.id); x.name = e.target.value; })} /></td>
+              <td><input className="in" value={t.text} onChange={e => update(s => { const x = s.settings.smsTemplates.find(y => y.id === t.id); x.text = e.target.value; })} /></td>
+              <td><button className="icon" onClick={() => update(s => s.settings.smsTemplates = s.settings.smsTemplates.filter(y => y.id !== t.id))}>✕</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <button className="btn small ghost" onClick={() => update(s => { s.settings.smsTemplates = s.settings.smsTemplates || []; s.settings.smsTemplates.push({ id: 's' + Date.now(), name: 'New template', text: '{name}, … — {clinic}' }); })}>+ SMS template</button>
+      </div>
+
       <h2 className="ptitle">Prescription</h2>
       <div className="frow">
         <label className="lbl">Pad style

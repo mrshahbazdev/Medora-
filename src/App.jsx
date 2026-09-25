@@ -7,6 +7,10 @@ import MedsPanel from './components/MedsPanel.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
 import DayBookPanel from './components/DayBookPanel.jsx';
 import AdmissionsPanel from './components/AdmissionsPanel.jsx';
+import LabPanel from './components/LabPanel.jsx';
+import VaccinesPanel from './components/VaccinesPanel.jsx';
+import StaffPanel from './components/StaffPanel.jsx';
+import StatsPanel from './components/StatsPanel.jsx';
 import { exportCsv } from './lib/csv.js';
 
 const NAV = [
@@ -18,7 +22,11 @@ const NAV = [
     { id: 'daybook', label: 'Day book', ur: 'روزنامچہ', glyph: '▤' }
   ]},
   { sec: 'Clinic', secUr: 'کلینک', items: [
+    { id: 'labs', label: 'Lab reports', ur: 'لیب', glyph: '∴' },
+    { id: 'vaccines', label: 'Vaccination', ur: 'ویکسین', glyph: '💉' },
     { id: 'meds', label: 'Medicines', ur: 'ادویات', glyph: '℞' },
+    { id: 'staff', label: 'Staff', ur: 'عملہ', glyph: '⚕' },
+    { id: 'stats', label: 'Monthly stats', ur: 'رپورٹ', glyph: '☷' },
     { id: 'settings', label: 'Settings', ur: 'ترتیبات', glyph: '⚙' }
   ]}
 ];
@@ -64,7 +72,10 @@ export default function App() {
   };
 
   const exportAllJson = () => {
-    window.api.export.json({ json: JSON.stringify(store, null, 2), suggestedName: 'medora-backup.json' });
+    const json = JSON.stringify(store, null, 2);
+    window.api.export.json({ json, suggestedName: 'medora-backup.json' });
+    if (store.settings.backupFolder)
+      window.api.export.toFolder({ folder: store.settings.backupFolder, name: `medora-backup-${new Date().toISOString().slice(0, 10)}.json`, text: json });
     update(s => s.settings.lastBackupAt = new Date().toISOString().slice(0, 10));
   };
   const exportAllCsv = () => window.api.export.text({ text: exportCsv(store), suggestedName: 'medora-patients.csv' });
@@ -149,6 +160,10 @@ export default function App() {
         {tab === 'meds' && <MedsPanel store={store} update={update} />}
         {tab === 'daybook' && <DayBookPanel store={store} update={update} />}
         {tab === 'wards' && <AdmissionsPanel store={store} update={update} />}
+        {tab === 'labs' && <LabPanel store={store} update={update} />}
+        {tab === 'vaccines' && <VaccinesPanel store={store} update={update} />}
+        {tab === 'staff' && <StaffPanel store={store} update={update} />}
+        {tab === 'stats' && <StatsPanel store={store} update={update} />}
         {tab === 'settings' && <SettingsPanel store={store} update={update} setStore={setStore} />}
         </main>
         <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Nothing leaves this computer.</footer>
