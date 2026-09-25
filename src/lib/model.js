@@ -17,6 +17,7 @@ export function defaultSettings() {
   return {
     doctorName: '', qualifications: '', licenseNo: '',
     clinicName: '', clinicAddress: '', clinicPhone: '', clinicTimings: '',
+    signatureDataUrl: '',
     paperSize: 'a5', // 'a5' | 'a4'
     template: 'classic', // 'classic' | 'modern'
     bilingual: true,
@@ -30,6 +31,7 @@ export function newPatient() {
   return {
     id: uid(), mrn: '', name: '', age: '', ageUnit: 'years',
     gender: '', phone: '', address: '', allergies: '', notes: '',
+    height: '', chronic: '', photoDataUrl: '',
     createdAt: new Date().toISOString()
   };
 }
@@ -40,6 +42,7 @@ export function newVisit(patientId) {
     complaint: '', diagnosis: '',
     vitals: { bp: '', pulse: '', temp: '', weight: '', spo2: '' },
     items: [], // { id, name, form, strength, freq, days, note }
+    investigations: [],
     advice: [],
     followUpDays: '',
     fee: ''

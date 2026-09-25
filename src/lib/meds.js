@@ -124,3 +124,69 @@ export const DIAGNOSIS_PRESETS = [
   'Allergic dermatitis', 'Scabies', 'Fungal skin infection',
   'Dengue — suspected', 'Malaria — suspected', 'Typhoid — suspected'
 ];
+
+// ---- One-click illness presets: a full typical Rx (meds + advice indices) ----
+// items reference PRESET_MEDS by index so they stay editable.
+const P = PRESET_MEDS;
+export const RX_PRESETS = [
+  { name: 'Viral fever / flu', diagnosis: 'Viral fever', items: [
+    { med: 0, freq: 'TDS', days: 3, note: 'after meals' },
+    { med: 24, freq: 'TDS', days: 3, note: '' }], advice: [0, 4, 11], followUpDays: 3 },
+  { name: 'URTI / sore throat', diagnosis: 'Pharyngitis', items: [
+    { med: 0, freq: 'TDS', days: 3, note: '' },
+    { med: 4, freq: 'TDS', days: 5, note: 'after meals' },
+    { med: 22, freq: 'TDS', days: 5, note: '2 tsp' }], advice: [0, 4, 5, 11], followUpDays: 5 },
+  { name: 'Gastroenteritis / loose motions', diagnosis: 'Acute gastroenteritis', items: [
+    { med: 7, freq: 'TDS', days: 5, note: '' },
+    { med: 15, freq: 'SOS', days: 3, note: 'after each loose stool' },
+    { med: 16, freq: 'SOS', days: 3, note: '' }], advice: [0, 1, 3, 13], followUpDays: 3 },
+  { name: 'Acidity / gastritis', diagnosis: 'Gastritis', items: [
+    { med: 10, freq: 'BB', days: 14, note: 'before breakfast' },
+    { med: 12, freq: 'TDS', days: 5, note: 'before meals' }], advice: [1, 3], followUpDays: 14 },
+  { name: 'Allergic rhinitis / skin allergy', diagnosis: 'Allergic rhinitis', items: [
+    { med: 17, freq: 'OD', days: 7, note: '' },
+    { med: 18, freq: 'OD', days: 7, note: 'if sedated, take at night' }], advice: [6], followUpDays: 7 },
+  { name: 'Hypertension visit', diagnosis: 'Hypertension', items: [
+    { med: 31, freq: 'OD', days: 30, note: 'same time daily' }], advice: [8, 10, 12], followUpDays: 30 },
+  { name: 'Diabetes visit', diagnosis: 'Type 2 diabetes mellitus', items: [
+    { med: 35, freq: 'BD', days: 30, note: 'with meals' }], advice: [9, 10], followUpDays: 30 },
+  { name: 'Body aches / musculoskeletal pain', diagnosis: 'Musculoskeletal pain', items: [
+    { med: 39, freq: 'BD', days: 5, note: 'after meals' },
+    { med: 40, freq: 'TDS', days: 7, note: '' }], advice: [3], followUpDays: 7 },
+  { name: 'UTI', diagnosis: 'UTI', items: [
+    { med: 6, freq: 'BD', days: 7, note: '' },
+    { med: 47, freq: 'TDS', days: 3, note: 'for pain' }], advice: [0, 13], followUpDays: 7 },
+  { name: 'Anemia / weakness', diagnosis: 'Anemia', items: [
+    { med: 43, freq: 'OD', days: 30, note: 'after food, avoid tea with dose' },
+    { med: 42, freq: 'OD', days: 30, note: '' }], advice: [1, 13], followUpDays: 30 },
+  { name: 'Scabies / skin infection', diagnosis: 'Scabies', items: [
+    { med: 18, freq: 'HS', days: 7, note: '' },
+    { med: 51, freq: 'BD', days: 7, note: 'apply thin layer' }], advice: [6], followUpDays: 7 },
+  { name: 'Asthma / chest congestion', diagnosis: 'Asthma — controlled', items: [
+    { med: 21, freq: 'SOS', days: 30, note: '2 puffs when breathless' },
+    { med: 20, freq: 'NOCTE', days: 14, note: '' }], advice: [5, 6, 7], followUpDays: 14 }
+];
+
+export const INVESTIGATION_PRESETS = [
+  'CBC', 'Blood sugar (fasting)', 'Blood sugar (random)', 'HbA1c', 'ESR', 'CRP',
+  'Typhoid (Widal/ICT)', 'Dengue NS1', 'Malaria parasite (MP)', 'Urine complete examination',
+  'Urine culture', 'Lipid profile', 'LFTs', 'RFTs / Creatinine', 'TSH',
+  'Hepatitis B & C screening', 'X-ray chest', 'X-ray (specify site)', 'Ultrasound abdomen',
+  'ECG', 'Vitamin D level', 'Stool examination', 'Pregnancy test ( urine )', 'Blood group & Rh'
+];
+
+// ---- Minimal offline interaction cautions (pairs of generic substrings) ----
+export const INTERACTIONS = [
+  { a: 'aspirin', b: 'ibuprofen', warn: 'Aspirin + ibuprofen: increased GI bleed risk' },
+  { a: 'aspirin', b: 'diclofenac', warn: 'Aspirin + diclofenac: increased GI bleed risk' },
+  { a: 'alprazolam', b: 'bromazepam', warn: 'Two benzodiazepines: excessive sedation' },
+  { a: 'alprazolam', b: 'lorazepam', warn: 'Two benzodiazepines: excessive sedation' },
+  { a: 'ciprofloxacin', b: 'antacid', warn: 'Ciprofloxacin + antacid/iron: reduced absorption — space doses 2h' },
+  { a: 'metronidazole', b: 'alcohol', warn: 'Metronidazole + alcohol: disulfiram reaction — advise no alcohol' },
+  { a: 'glyceryl', b: 'sildenafil', warn: 'Nitrate + sildenafil: dangerous hypotension' },
+  { a: 'furosemide', b: 'diclofenac', warn: 'NSAID blunts furosemide — monitor BP' },
+  { a: 'warfarin', b: 'aspirin', warn: 'Warfarin + aspirin: major bleed risk' },
+  { a: 'iron', b: 'ciprofloxacin', warn: 'Iron + ciprofloxacin: reduced absorption — space doses 2h' },
+  { a: 'domperidone', b: 'ciprofloxacin', warn: 'Domperidone + ciprofloxacin: QT prolongation caution' },
+  { a: 'metformin', b: 'alcohol', warn: 'Metformin + alcohol: lactic acidosis risk' }
+];

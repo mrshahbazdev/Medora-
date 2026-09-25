@@ -61,11 +61,12 @@ export function rxDocument({ store, patient, visit }) {
   ${visit.diagnosis ? `<div class="rx-row"><span class="rx-lab">Dx</span> ${esc(visit.diagnosis)}</div>` : ''}
   <div class="rx-symbol">℞</div>
   <table class="rx-items">${visit.items.map(i => itemLine(i, st.bilingual)).join('')}</table>
+  ${(visit.investigations || []).length ? `<div class="rx-inv"><div class="rx-advlab">Investigations advised</div><div class="rx-invlist">${visit.investigations.map(esc).join(' · ')}</div></div>` : ''}
   ${adviceRows.length ? `<div class="rx-adv"><div class="rx-advlab">Advice</div>${adviceRows.map(a =>
     `<div class="rx-advrow"><span>${esc(a.en)}</span>${st.bilingual ? `<span class="rx-ur">${a.ur}</span>` : ''}</div>`).join('')}</div>` : ''}
   <div class="rx-foot">
     <div>${fup ? `Next visit: <b>${fup}</b>` : ''}${visit.fee && st.showFee ? ` &nbsp;·&nbsp; Fee: ${esc(visit.fee)}` : ''}</div>
-    <div class="rx-sign">${esc(st.doctorName)}</div>
+    <div class="rx-sign">${st.signatureDataUrl ? `<img src="${st.signatureDataUrl}" style="max-height:14mm;display:block;margin:0 auto 1mm">` : ''}${esc(st.doctorName)}</div>
   </div>`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${rxCss(size, st.template)}</style></head>
@@ -105,6 +106,8 @@ export function rxCss(size, template) {
   .rx-str { font-weight: 400; color: #475569; }
   .rx-sig { font-size: 8.5pt; color: #334155; }
   .rx-ur { font-size: 9pt; color: #475569; }
+  .rx-inv { margin-top: 3mm; }
+  .rx-invlist { font-size: 8.5pt; color: #334155; }
   .rx-adv { margin-top: 4mm; border-top: 0.5px dashed #94a3b8; padding-top: 2mm; }
   .rx-advlab { font-size: 8pt; font-weight: 700; color: #64748b; margin-bottom: 1mm; }
   .rx-advrow { display: flex; justify-content: space-between; font-size: 8.5pt; padding: 0.5mm 0; }

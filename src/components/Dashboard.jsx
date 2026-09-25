@@ -7,6 +7,7 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
   const t = today();
   const queue = store.queue.filter(q => q.at === t && q.status !== 'done');
   const visitsToday = store.visits.filter(v => v.date === t);
+  const feesToday = visitsToday.reduce((n, v) => n + (Number(v.fee) || 0), 0);
 
   // Follow-ups: latest visit per patient with a followUpDays landing on/before today.
   const followUps = store.visits
@@ -18,9 +19,10 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
 
   return (
     <div className="panel">
-      <div className="cards">
+      <div className="cards" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         <div className="card"><div className="clabel">In queue today</div><div className="cval">{queue.length}</div><div className="csub">waiting patients</div></div>
         <div className="card ok"><div className="clabel">Seen today</div><div className="cval">{visitsToday.length}</div><div className="csub">prescriptions written</div></div>
+        <div className="card"><div className="clabel">Collected today</div><div className="cval">{feesToday || '—'}</div><div className="csub">consultation fees</div></div>
         <div className="card"><div className="clabel">Patients on record</div><div className="cval">{store.patients.length}</div><div className="csub">{store.visits.length} visits total</div></div>
       </div>
 

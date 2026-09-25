@@ -81,6 +81,16 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
             {patient.allergies && <div className="allergy">⚠ Allergy: {patient.allergies}</div>}
 
             <div className="form" style={{ marginBottom: 16 }}>
+              <div className="frow" style={{ alignItems: 'center' }}>
+                {patient.photoDataUrl
+                  ? <img src={patient.photoDataUrl} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--line)' }} />
+                  : <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e0f7f4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: 'var(--accent-strong)', border: '2px solid var(--line)' }}>{(patient.name || '?').slice(0, 1)}</div>}
+                <button className="btn small ghost" onClick={async () => {
+                  const f = await window.api.app.openFile({ filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] });
+                  if (f?.dataUrl) update(s => { s.patients.find(x => x.id === patient.id).photoDataUrl = f.dataUrl; });
+                }}>{patient.photoDataUrl ? 'Change photo' : 'Add photo'}</button>
+                {patient.photoDataUrl && <button className="icon" onClick={() => update(s => { s.patients.find(x => x.id === patient.id).photoDataUrl = ''; })} aria-label="Remove photo">✕</button>}
+              </div>
               <div className="frow">
                 <input className="in" value={patient.name} placeholder="Full name" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).name = e.target.value; })} />
                 <input className="in num" type="number" value={patient.age} placeholder="Age" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).age = e.target.value === '' ? '' : Number(e.target.value); })} />
@@ -91,6 +101,10 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
                   <option value="">Gender</option><option>Male</option><option>Female</option><option>Other</option>
                 </select>
                 <input className="in" value={patient.phone} placeholder="Phone" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).phone = e.target.value; })} />
+                <input className="in num" value={patient.height} placeholder="Ht (cm)" title="Height in cm" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).height = e.target.value; })} />
+              </div>
+              <div className="frow">
+                <input className="in" style={{ flex: 1 }} value={patient.chronic} placeholder="Chronic conditions — HTN, DM, asthma…" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).chronic = e.target.value; })} />
               </div>
               <div className="frow">
                 <input className="in" style={{ flex: 1 }} value={patient.address} placeholder="Address" onChange={e => update(s => { s.patients.find(x => x.id === patient.id).address = e.target.value; })} />

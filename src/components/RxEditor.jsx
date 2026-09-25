@@ -1,7 +1,33 @@
 import React, { useMemo, useState } from 'react';
-import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS } from '../lib/meds.js';
+import { FREQUENCIES, DURATIONS, ADVICE_PRESETS, COMPLAINT_PRESETS, DIAGNOSIS_PRESETS, RX_PRESETS, INVESTIGATION_PRESETS, INTERACTIONS } from '../lib/meds.js';
+import { medicalCertificateHtml, referralLetterHtml, followUpSms } from '../lib/docsHtml.js';
 import { uid, ageText } from '../lib/model.js';
 import { rxDocument, rxPreviewHtml, rxCss } from '../lib/rxHtml.js';
+
+function DoseCalc({ weight, onApply }) {
+  const [open, setOpen] = useState(false);
+  const [perKg, setPerKg] = useState('');
+  const [perDay, setPerDay] = useState(3);
+  const wt = Number(weight);
+  const total = wt && perKg ? (Number(perKg) * wt).toFixed(1) : '';
+  return (
+    <span style={{ position: 'relative' }}>
+      <button className="btn small ghost" onClick={() => setOpen(!open)} title="Weight-based dose calculator">mg/kg</button>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 20, background: '#fff', border: '1px solid var(--line)', borderRadius: 10, padding: 12, boxShadow: '0 8px 24px rgba(19,78,74,0.18)', width: 240 }}>
+          {wt ? <div className="muted" style={{ marginBottom: 6 }}>Weight: {wt} kg</div> : <div className="muted" style={{ marginBottom: 6, color: 'var(--danger)' }}>Add weight (kg) in vitals</div>}
+          <div className="frow" style={{ marginBottom: 6 }}>
+            <input className="in num" placeholder="mg/kg/dose" value={perKg} onChange={e => setPerKg(e.target.value)} />
+            <span className="muted">× {perDay}/day</span>
+          </div>
+          <input className="in num" type="number" min="1" value={perDay} onChange={e => setPerDay(Number(e.target.value) || 1)} />
+          {total && <div style={{ margin: '8px 0' }}><b>{total} mg per dose</b> · {(total * perDay).toFixed(0)} mg/day</div>}
+          {total && <button className="btn small" onClick={() => { onApply(`${total} mg per dose`); setOpen(false); }}>Use as note</button>}
+        </div>
+      )}
+    </span>
+  );
+}
 
 export default function RxEditor({ store, update, patient, visit, close }) {
   const mut = (fn) => update(s => { const v = s.visits.find(x => x.id === visit.id); if (v) fn(v); });
@@ -29,11 +55,47 @@ export default function RxEditor({ store, update, patient, visit, close }) {
     });
   };
 
+  // Drug interaction check across prescribed items (name + generic).
+  const interactions = useMemo(() => {
+    const hay = visit.items.map(it => {
+      const med = store.medicines.find(m => m.name === it.name);
+      return `${it.name} ${med?.generic || ''}`.toLowerCase();
+    });
+    return INTERACTIONS.filter(x =>
+      hay.some(h => h.includes(x.a)) && hay.some(h => h.includes(x.b)));
+  }, [visit.items, store.medicines]);
+
+  const applyPreset = (idx) => {
+    const p = RX_PRESETS[idx];
+    if (!p) return;
+    mut(v => {
+      v.diagnosis = p.diagnosis;
+      v.items = p.items.map(it => {
+        const m = store.medicines[it.med] || {};
+        return { id: uid(), name: m.name || '', form: m.form || 'Tab', strength: m.strength || '',
+          freq: it.freq, days: it.days, note: it.note || '' };
+      });
+      v.advice = [...p.advice];
+      if (p.followUpDays) v.followUpDays = p.followUpDays;
+    });
+  };
+
   const html = rxDocument({ store, patient, visit });
   const preview = rxPreviewHtml({ store, patient, visit });
   const size = store.settings.paperSize === 'a4' ? { w: 210, h: 297 } : { w: 148, h: 210 };
 
   const print = () => window.api.export.print({ html });
+  const printCert = () => window.api.export.print({ html: medicalCertificateHtml({ store, patient, visit, restDays: visit.followUpDays }) });
+  const printReferral = () => {
+    const to = prompt('Refer to (doctor / facility):', 'Consultant, THQ Hospital');
+    if (to === null) return;
+    const reason = prompt('Reason:', visit.diagnosis || visit.complaint || '');
+    window.api.export.print({ html: referralLetterHtml({ store, patient, visit, toDoctor: to, reason }) });
+  };
+  const copySms = () => {
+    navigator.clipboard.writeText(followUpSms({ store, patient, visit }));
+    alert('Follow-up SMS copied — paste it into WhatsApp/SMS to send.');
+  };
   const savePdf = () => window.api.export.pdf({ html, suggestedName: `${patient.name}-Rx-${visit.date}.pdf` });
   const delVisit = async () => {
     if (!confirm('Delete this visit? A snapshot is taken first.')) return;
@@ -50,12 +112,20 @@ export default function RxEditor({ store, update, patient, visit, close }) {
           <input className="in" type="date" value={visit.date} onChange={e => mut(v => v.date = e.target.value)} />
           {lastVisit && <button className="btn small ghost" onClick={copyLast} title={`Repeat ${lastVisit.date} Rx`}>Repeat last Rx</button>}
           <span style={{ flex: 1 }} />
+          <select className="in" defaultValue="" onChange={e => { if (e.target.value !== '') applyPreset(Number(e.target.value)); e.target.value = ''; }} title="Apply a full illness preset">
+            <option value="" disabled>Rx preset…</option>
+            {RX_PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
+          </select>
+          <button className="btn small ghost" onClick={printCert}>Sick note</button>
+          <button className="btn small ghost" onClick={printReferral}>Referral</button>
+          {visit.followUpDays && <button className="btn small ghost" onClick={copySms}>Copy SMS</button>}
           <button className="btn small ghost" onClick={delVisit}>Delete</button>
           <button className="btn small" onClick={savePdf}>Save PDF</button>
           <button className="btn" onClick={print}>Print</button>
         </div>
 
         {allergyHit && <div className="allergy">⚠ {patient.name} is allergic to <b>{patient.allergies}</b> — {allergyHit} may conflict.</div>}
+        {interactions.map(x => <div className="allergy" key={x.warn}>⚠ Interaction: {x.warn}</div>)}
 
         <div className="form">
           <div className="frow">
@@ -79,7 +149,18 @@ export default function RxEditor({ store, update, patient, visit, close }) {
             </div>
           )}
 
-          <RxItems store={store} items={visit.items} mut={mut} patient={patient} />
+          <RxItems store={store} items={visit.items} mut={mut} patient={patient} weight={visit.vitals?.weight} />
+
+          <label className="lbl" style={{ marginBottom: 6 }}>Investigations / lab tests</label>
+          <div className="freqgrid" style={{ marginBottom: 12 }}>
+            {INVESTIGATION_PRESETS.map(t => (
+              <button key={t} className={'chip' + ((visit.investigations || []).includes(t) ? ' on' : '')}
+                onClick={() => mut(v => {
+                  v.investigations = v.investigations || [];
+                  v.investigations = v.investigations.includes(t) ? v.investigations.filter(x => x !== t) : [...v.investigations, t];
+                })}>{t}</button>
+            ))}
+          </div>
 
           <label className="lbl" style={{ marginBottom: 6 }}>Advice (click to add/remove)</label>
           <div className="freqgrid" style={{ marginBottom: 12 }}>
@@ -111,7 +192,7 @@ export default function RxEditor({ store, update, patient, visit, close }) {
   );
 }
 
-function RxItems({ store, items, mut, patient }) {
+function RxItems({ store, items, mut, patient, weight }) {
   const [pickFor, setPickFor] = useState(null); // item id with open dropdown
   const [needle, setNeedle] = useState('');
 
@@ -171,8 +252,11 @@ function RxItems({ store, items, mut, patient }) {
                 onClick={() => mutItem(it.id, x => x.freq = f.code)}>{f.code}</button>
             ))}
           </div>
-          <input className="in" style={{ width: '100%' }} value={it.note} placeholder="Note, e.g. after meals / 2 tsp / apply thin layer"
-            onChange={e => mutItem(it.id, x => x.note = e.target.value)} />
+          <div className="frow" style={{ marginBottom: 0 }}>
+            <input className="in" style={{ flex: 1 }} value={it.note} placeholder="Note, e.g. after meals / 2 tsp / apply thin layer"
+              onChange={e => mutItem(it.id, x => x.note = e.target.value)} />
+            <DoseCalc weight={weight} onApply={txt => mutItem(it.id, x => x.note = txt)} />
+          </div>
         </div>
       ))}
       {items.length === 0 && <p className="muted" style={{ marginBottom: 12 }}>No medicines yet — search above to add.</p>}

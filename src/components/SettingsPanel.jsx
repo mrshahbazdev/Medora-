@@ -32,6 +32,15 @@ export default function SettingsPanel({ store, update, setStore }) {
           <input className="in" value={st.clinicPhone} placeholder="Phone" onChange={e => mut(x => x.clinicPhone = e.target.value)} />
           <input className="in" style={{ flex: 1 }} value={st.clinicTimings} placeholder="Timings, e.g. Mon–Sat 5–9 PM" onChange={e => mut(x => x.clinicTimings = e.target.value)} />
         </div>
+        <div className="frow">
+          <button className="btn small ghost" onClick={async () => {
+            const f = await window.api.app.openFile({ filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] });
+            if (f?.dataUrl) mut(x => x.signatureDataUrl = f.dataUrl);
+          }}>{st.signatureDataUrl ? 'Change signature' : 'Upload signature image'}</button>
+          {st.signatureDataUrl && <img src={st.signatureDataUrl} alt="signature" style={{ height: 34, background: '#fff', padding: 4, border: '1px solid var(--line)', borderRadius: 6 }} />}
+          {st.signatureDataUrl && <button className="icon" onClick={() => mut(x => x.signatureDataUrl = '')} aria-label="Remove signature">✕</button>}
+          <span className="muted">Signs every prescription, certificate and referral automatically</span>
+        </div>
       </div>
 
       <h2 className="ptitle">Prescription</h2>
