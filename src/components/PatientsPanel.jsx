@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid, nextToken } from '../lib/model.js';
-import { patientCardHtml, ancCardHtml, ledgerHtml, claimFormHtml } from '../lib/docsHtml.js';
+import { patientCardHtml, ancCardHtml, ledgerHtml, claimFormHtml, trendChartHtml } from '../lib/docsHtml.js';
 import RxEditor from './RxEditor.jsx';
 
 export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId, user }) {
@@ -115,6 +115,14 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               {patient.insurance && <button className="btn small ghost" title="Insurance claim form" onClick={() => window.api.export.print({ html: claimFormHtml({ store, patient, insurer: patient.insurance, visits: visits.filter(v => v.fee) }) })}>Claim form</button>}
               {visits.some(v => v.type === 'anc' || (v.anc && (v.anc.gravida || v.anc.edd))) &&
                 <button className="btn small ghost" onClick={() => window.api.export.print({ html: ancCardHtml({ store, patient, visits }) })}>ANC card</button>}
+              <button className="btn small ghost" title="BP / sugar / weight trend across visits" onClick={() => window.api.export.print({ html: trendChartHtml({ store, patient }) })}>Trend 📈</button>
+              {(() => {
+                const digits = p => (p.phone || '').replace(/\D/g, '').slice(-9);
+                const dup = store.patients.find(x => x.id !== patient.id && (
+                  (digits(x) && digits(x) === digits(patient)) ||
+                  (x.name && patient.name && x.name.trim().toLowerCase() === patient.name.trim().toLowerCase() && String(x.age) === String(patient.age))));
+                return dup ? <span className="pc pc-warn" title="Possible duplicate record — use Merge to combine">⚠ Possible duplicate: {dup.name} (MRN {dup.mrn}) — use Merge</span> : null;
+              })()}
               <button className="btn small ghost" title="Merge this patient into another record" onClick={async () => {
                 const target = prompt('Merge INTO MRN (this record will be removed):', '');
                 if (!target) return;

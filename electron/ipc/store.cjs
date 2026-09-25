@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { app, ipcMain } = require('electron');
 const { readJsonEnc, writeJsonEnc, verifyPinStr } = require('./doc-io.cjs');
-const { serveDoc, mergeSave } = require('../db.cjs');
+const { serveDoc, mergeSave, loadDoc } = require('../db.cjs');
 
 /**
  * Document store: the live data lives in medora.db (SQLCipher-encrypted
@@ -88,6 +88,23 @@ function registerStoreIPC() {
     }
   });
 }
+
+// Scheduled off-app backup: once per day an encrypted copy of the whole store
+// is written into settings.backupFolder (a USB drive or synced folder). The
+// dashboard banner warns when lastBackupAt goes stale — this keeps it fresh.
+function maybeAutoBackup() {
+  try {
+    const doc = loadDoc();
+    const st = doc.settings || {};
+    const today = new Date().toISOString().slice(0, 10);
+    if (!st.backupFolder || st.lastBackupAt === today) return;
+    fs.mkdirSync(st.backupFolder, { recursive: true });
+    writeJsonEnc(path.join(st.backupFolder, `medora-backup-${today}.json`), doc);
+    mergeSave({ ...doc, settings: { ...st, lastBackupAt: today } }, { actor: 'auto-backup' });
+  } catch { /* backup is best-effort — surface via the stale-banner instead */ }
+}
+setInterval(maybeAutoBackup, 30 * 60 * 1000).unref();
+setTimeout(maybeAutoBackup, 20 * 1000).unref();
 
 function prune() {
   try {

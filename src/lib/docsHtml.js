@@ -6,6 +6,8 @@ import { ageText } from './model.js';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function head(st) {
+  // Pre-printed letterhead: leave topMm mm for the clinic's printed header.
+  if (st.letterhead?.prePrinted) return `<div style="height:${Number(st.letterhead.topMm) || 40}mm"></div>`;
   return `<div class="rxhead ${st.template}">
     <div class="rx-doc">
       <div class="rx-docname">${esc(st.doctorName)}</div>
@@ -598,4 +600,56 @@ export const claimFormHtml = ({ store, patient, insurer, visits }) => {
     <table><thead><tr><th>Date</th><th>Diagnosis / service</th><th>Charges Rs</th></tr></thead><tbody>${rows}</tbody></table>
     <p style="text-align:right"><b>Total claimed: Rs ${total}</b></p>
     <p style="margin-top:10mm">Attending doctor sign &amp; stamp: ______________</p></body></html>`;
+};
+
+// ---- Chronic patient trend chart (BP / sugar / weight / pulse across visits) --
+export const trendChartHtml = ({ store, patient }) => {
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const visits = store.visits.filter(v => v.patientId === patient.id).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const num = (s) => { const m = String(s ?? '').match(/\d+(\.\d+)?/); return m ? Number(m[0]) : null; };
+  const bpParts = (s) => { const m = String(s ?? '').match(/(\d+)\s*[/]\s*(\d+)/); return m ? [Number(m[1]), Number(m[2])] : [null, null]; };
+  const sugarLabs = (store.labs || []).filter(l => l.patientId === patient.id && /sugar|glucose|hba1c/i.test(l.test || '') && num(l.result) != null)
+    .map(l => ({ date: l.date, val: num(l.result), hba: /hba1c/i.test(l.test || '') }));
+  const pts = visits.map(v => {
+    const [sys, dia] = bpParts(v.vitals?.bp);
+    return { date: v.date, sys, dia, pulse: num(v.vitals?.pulse), weight: num(v.vitals?.weight), temp: num(v.vitals?.temp), spo2: num(v.vitals?.spo2) };
+  });
+  const series = [
+    { key: 'sys', label: 'BP sys', color: '#dc2626', pts: pts.map(p => ({ d: p.date, v: p.sys })).filter(p => p.v != null) },
+    { key: 'dia', label: 'BP dia', color: '#f59e0b', pts: pts.map(p => ({ d: p.date, v: p.dia })).filter(p => p.v != null) },
+    { key: 'weight', label: 'Weight kg', color: '#2563eb', pts: pts.map(p => ({ d: p.date, v: p.weight })).filter(p => p.v != null) },
+    { key: 'pulse', label: 'Pulse', color: '#7c3aed', pts: pts.map(p => ({ d: p.date, v: p.pulse })).filter(p => p.v != null) },
+    { key: 'sugar', label: 'Sugar (lab)', color: '#059669', pts: sugarLabs.filter(s => !s.hba).map(s => ({ d: s.date, v: s.val })) },
+    { key: 'hba1c', label: 'HbA1c %', color: '#0d9488', pts: sugarLabs.filter(s => s.hba).map(s => ({ d: s.date, v: s.val })) }
+  ].filter(s => s.pts.length > 1);
+  const allVals = series.flatMap(s => s.pts.map(p => p.v));
+  const lo = Math.min(...allVals, 0), hi = Math.max(...allVals, 1);
+  const span = Math.max(hi - lo, 1);
+  const allDates = [...new Set([...pts.map(p => p.date), ...sugarLabs.map(s => s.date)])].sort();
+  const x = (d) => 40 + (allDates.indexOf(d) / Math.max(allDates.length - 1, 1)) * 900;
+  const y = (v) => 190 - ((v - lo) / span) * 160;
+  const lines = series.map(s => `<polyline points="${s.pts.map(p => `${x(p.d)},${y(p.v)}`).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2"/>`
+    + s.pts.map(p => `<circle cx="${x(p.d)}" cy="${y(p.v)}" r="3" fill="${s.color}"/>`).join('')).join('');
+  const xlabels = allDates.filter((_, i) => i % Math.ceil(allDates.length / 8 || 1) === 0).map(d => `<text x="${x(d)}" y="208" font-size="8" text-anchor="middle">${esc(d.slice(5))}</text>`).join('');
+  const tableRows = pts.map(p => `<tr><td>${esc(p.date)}</td><td>${p.sys != null ? p.sys + '/' + p.dia : '—'}</td><td>${p.pulse ?? '—'}</td><td>${p.weight ?? '—'}</td><td>${p.temp ?? '—'}</td><td>${p.spo2 ?? '—'}</td><td>${esc(visits.find(v => v.date === p.date)?.diagnosis || '')}</td></tr>`).join('');
+  const sugarRows = sugarLabs.map(s => `<tr><td>${esc(s.date)}</td><td>${s.hba ? 'HbA1c' : 'Blood sugar'}</td><td><b>${s.val}</b></td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A4 landscape; margin: 12mm } body { font:10pt 'Segoe UI',sans-serif } h2 { margin:0 } .muted{color:#64748b}
+    table { width:100%; border-collapse:collapse; margin-top:4mm; font-size:8.5pt } td,th { border:1px solid #cbd5e1; padding:2px 5px } th { background:#1e3a5f; color:#fff; text-align:left }
+    .legend span { display:inline-block; margin-right:12px; font-size:9pt }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:4px; margin-right:4px }
+  </style></head><body>
+    <h2>${esc(patient.name)} — chronic trend</h2>
+    <div class="muted">MRN ${esc(patient.mrn)} · ${esc(patient.chronic || '')} · ${allDates.length} visits · ${esc(store.settings.clinicName || '')}</div>
+    ${series.length ? `<svg width="960" height="215" viewBox="0 0 960 215" style="margin-top:4mm">
+      <rect x="0" y="0" width="960" height="215" fill="#fff"/>
+      ${[0.25, 0.5, 0.75, 1].map(f => `<line x1="40" y1="${190 - f * 160}" x2="940" y2="${190 - f * 160}" stroke="#e2e8f0"/><text x="4" y="${193 - f * 160}" font-size="8">${Math.round(lo + f * span)}</text>`).join('')}
+      ${lines}${xlabels}
+    </svg>
+    <div class="legend">${series.map(s => `<span><span class="dot" style="background:${s.color}"></span>${s.label}</span>`).join('')}</div>`
+    : '<p class="muted">Not enough vitals recorded yet — chart appears after 2+ visits with vitals.</p>'}
+    <table><thead><tr><th>Date</th><th>BP</th><th>Pulse</th><th>Wt kg</th><th>Temp</th><th>SpO2</th><th>Diagnosis</th></tr></thead><tbody>${tableRows || '<tr><td colspan="7">No visits</td></tr>'}</tbody></table>
+    ${sugarRows ? `<table><thead><tr><th>Date</th><th>Test</th><th>Result</th></tr></thead><tbody>${sugarRows}</tbody></table>` : ''}
+    <p class="muted" style="margin-top:4mm">Trends for clinical review — not diagnostic. Printed from Medora.</p>
+  </body></html>`;
 };

@@ -120,19 +120,25 @@ export default function RxEditor({ store, update, patient, visit, close, user })
     if (to) update(s => (s.referrals = s.referrals || []).push({ id: uid(), date: visit.date, patientId: patient.id, toFacility: to, reason: reason || '' }));
     window.api.export.print({ html: referralLetterHtml({ store, patient, visit, toDoctor: to, reason }) });
   };
-  const copySms = () => {
+  const smsText = () => {
     const tpl = (store.settings.smsTemplates || [])[0];
-    let text = followUpSms({ store, patient, visit });
-    if (tpl) {
-      const doc = (store.settings.doctors || []).find(d => d.id === visit.doctorId) || (store.settings.doctors || [])[0];
-      text = tpl.text
-        .replaceAll('{name}', patient.name)
-        .replaceAll('{date}', visit.date)
-        .replaceAll('{clinic}', store.settings.clinicName || 'Clinic')
-        .replaceAll('{doctor}', doc?.name || store.settings.doctorName || '');
-    }
-    navigator.clipboard.writeText(text);
+    if (!tpl) return followUpSms({ store, patient, visit });
+    const doc = (store.settings.doctors || []).find(d => d.id === visit.doctorId) || (store.settings.doctors || [])[0];
+    return tpl.text
+      .replaceAll('{name}', patient.name)
+      .replaceAll('{date}', visit.date)
+      .replaceAll('{clinic}', store.settings.clinicName || 'Clinic')
+      .replaceAll('{doctor}', doc?.name || store.settings.doctorName || '');
+  };
+  const copySms = () => {
+    navigator.clipboard.writeText(smsText());
     alert('SMS copied — paste it into WhatsApp/SMS to send.');
+  };
+  const openWhatsApp = () => {
+    const digits = (patient.phone || '').replace(/\D/g, '');
+    const num = digits.startsWith('0') ? '92' + digits.slice(1) : digits;
+    if (!num) { alert('No phone number on this patient — add one first.'); return; }
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(smsText())}`, '_blank');
   };
   const savePdf = () => window.api.export.pdf({ html, suggestedName: `${patient.name}-Rx-${visit.date}.pdf` });
   const delVisit = async () => {
@@ -193,6 +199,7 @@ export default function RxEditor({ store, update, patient, visit, close, user })
           }}>Voice note</button>
           <button className="btn small ghost" onClick={printReferral}>Referral</button>
           {visit.followUpDays && <button className="btn small ghost" onClick={copySms}>Copy SMS</button>}
+          {visit.followUpDays && patient.phone && <button className="btn small ghost" title="Open WhatsApp with the follow-up message filled in" onClick={openWhatsApp}>WhatsApp ↗</button>}
           <button className="btn small ghost" onClick={delVisit}>Delete</button>
           <button className="btn small" onClick={savePdf}>Save PDF</button>
           <button className="btn" onClick={print}>Print</button>

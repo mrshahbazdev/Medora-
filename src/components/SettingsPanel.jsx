@@ -240,6 +240,12 @@ export default function SettingsPanel({ store, update, setStore }) {
         <input className="in" style={{ width: 130 }} value={st.padWatermark || ''} placeholder="Watermark (e.g. COPY)" onChange={e => mut(x => x.padWatermark = e.target.value)} />
         <input className="in" style={{ flex: 1 }} value={st.padThirdLine || ''} placeholder="Footer line on pad (e.g. Pashto / regional language note)" onChange={e => mut(x => x.padThirdLine = e.target.value)} />
       </div>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <label className="chk"><input type="checkbox" checked={!!st.letterhead?.prePrinted} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.prePrinted = e.target.checked; })} />
+          Pre-printed letterhead — Medora prints no header; Rx starts below the clinic's own printed pad</label>
+        {st.letterhead?.prePrinted && <label className="lbl">Start from top (mm)
+          <input className="in" type="number" min="10" max="100" style={{ width: 80 }} value={st.letterhead.topMm || 40} onChange={e => mut(x => { x.letterhead = x.letterhead || {}; x.letterhead.topMm = Number(e.target.value) || 40; })} /></label>}
+      </div>
 
       <h2 className="ptitle">Drug database</h2>
       <div className="frow" style={{ marginBottom: 14 }}>

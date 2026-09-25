@@ -43,8 +43,11 @@ export function rxDocument({ store, patient, visit }) {
     .map(i => typeof i === 'number' ? ADVICE_PRESETS[i] : null)
     .filter(Boolean);
 
-  const body = `
-  <div class="rxhead ${st.template}"${st.letterhead?.accent ? ` style="border-color:${st.letterhead.accent}"` : ''}>
+  // Pre-printed letterhead mode: the clinic's own printed pad carries the
+  // header — Medora just leaves topMm mm of space and starts the Rx below it.
+  const headerHtml = st.letterhead?.prePrinted
+    ? `<div style="height:${Number(st.letterhead.topMm) || 40}mm"></div>`
+    : `<div class="rxhead ${st.template}"${st.letterhead?.accent ? ` style="border-color:${st.letterhead.accent}"` : ''}>
     ${st.letterhead?.logoDataUrl ? `<img src="${st.letterhead.logoDataUrl}" style="max-height:16mm;max-width:30mm;object-fit:contain;margin-right:6mm">` : ''}
     <div class="rx-doc">
       <div class="rx-docname">${esc(st.doctorName)}</div>
@@ -55,7 +58,11 @@ export function rxDocument({ store, patient, visit }) {
       <div class="rx-docsub">${esc(st.clinicAddress)}</div>
       <div class="rx-docsub">${esc(st.clinicPhone)}${st.clinicTimings ? ` · ${esc(st.clinicTimings)}` : ''}</div>
     </div>
-  </div>
+  </div>`;
+
+  const body = `
+  ${headerHtml}
+  <!--HEAD-->
   <div class="rx-pline">
     <span><b>${esc(patient.name)}</b></span>
     <span>${patient.gender ? esc(patient.gender) + ', ' : ''}${esc(ageText(patient))}</span>
