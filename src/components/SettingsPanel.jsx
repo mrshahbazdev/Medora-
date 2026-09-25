@@ -69,8 +69,41 @@ export default function SettingsPanel({ store, update, setStore }) {
       </div>
       <p className="muted">Queue tokens carry the doctor & room; the selected doctor's name prints on that visit's prescription.</p>
 
+      <h2 className="ptitle">Access &amp; display</h2>
+      <div className="frow" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
+        <label className="chk"><input type="checkbox" checked={!!st.receptionMode} onChange={e => mut(x => x.receptionMode = e.target.checked)} /> Receptionist mode — show only Token queue &amp; Day book</label>
+        <label className="chk"><input type="checkbox" checked={!!st.uiUrdu} onChange={e => mut(x => x.uiUrdu = e.target.checked)} /> Urdu interface (right-to-left navigation)</label>
+        <label className="lbl" style={{ width: '100%' }}>Backup folder path (for USB/cloud sync reminder)
+          <input className="in" value={st.backupFolder || ''} placeholder="e.g. D:\Medora Backups" onChange={e => mut(x => x.backupFolder = e.target.value)} /></label>
+      </div>
+
+      <h2 className="ptitle">Wards &amp; branches</h2>
+      <div className="frow" style={{ marginBottom: 12 }}>
+        <label className="lbl" style={{ flex: 1 }}>Wards (comma separated)
+          <input className="in" value={(st.wards || []).join(', ')} onChange={e => mut(x => x.wards = e.target.value.split(',').map(r => r.trim()).filter(Boolean))} /></label>
+      </div>
+      <table className="grid" style={{ marginBottom: 14 }}>
+        <thead><tr><th>Branch / clinic location</th><th></th></tr></thead>
+        <tbody>
+          {(st.branches || []).map(b => (
+            <tr key={b.id}>
+              <td><input className="in" value={b.name} onChange={e => mut(x => { x.branches.find(z => z.id === b.id).name = e.target.value; })} /></td>
+              <td><button className="icon" onClick={() => mut(x => x.branches = x.branches.filter(z => z.id !== b.id))} aria-label="Remove branch">✕</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="frow" style={{ marginBottom: 14 }}>
+        <button className="btn small ghost" onClick={() => mut(x => { x.branches = x.branches || []; x.branches.push({ id: 'b' + Date.now(), name: 'Branch …' }); })}>+ Branch</button>
+      </div>
+
       <h2 className="ptitle">Prescription</h2>
       <div className="frow">
+        <label className="lbl">Pad style
+          <select className="in" value={st.padStyle || 'letter'} onChange={e => mut(x => x.padStyle = e.target.value)}>
+            <option value="letter">Letter pad (A5/A4)</option>
+            <option value="label">Sticker label (80mm)</option>
+          </select></label>
         <label className="lbl">Paper size
           <select className="in" value={st.paperSize} onChange={e => mut(x => x.paperSize = e.target.value)}>
             <option value="a5">A5 pad (half A4)</option>

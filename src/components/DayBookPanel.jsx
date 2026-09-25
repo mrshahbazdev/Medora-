@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ageText, visitPatient } from '../lib/model.js';
+import { ageText, visitPatient, uid } from '../lib/model.js';
 import { dayRegisterHtml } from '../lib/docsHtml.js';
 
-export default function DayBookPanel({ store }) {
+export default function DayBookPanel({ store, update }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
 
@@ -24,6 +24,10 @@ export default function DayBookPanel({ store }) {
   }, [store, date]);
 
   const totalFees = visits.reduce((t, r) => t + (Number(r.visit.fee) || 0), 0);
+  const expenses = (store.expenses || []).filter(e => e.date === date);
+  const totalExp = expenses.reduce((t, e) => t + (Number(e.amount) || 0), 0);
+  const [exTitle, setExTitle] = useState('');
+  const [exAmt, setExAmt] = useState('');
 
   const printRegister = () => window.api.export.print({
     html: dayRegisterHtml({ store, date, rows: visits })
@@ -43,6 +47,8 @@ export default function DayBookPanel({ store }) {
         <div className="card"><div className="clabel">Patients seen</div><div className="cnum">{visits.length}</div><div className="csub">on {date}</div></div>
         <div className="card"><div className="clabel">Collected</div><div className="cnum">{totalFees ? `Rs ${totalFees}` : '—'}</div><div className="csub">consultation fees</div></div>
         <div className="card"><div className="clabel">Prescriptions</div><div className="cnum">{visits.filter(r => r.visit.items.length > 0).length}</div><div className="csub">with medicines</div></div>
+        <div className="card"><div className="clabel">Expenses</div><div className="cnum">{totalExp ? `Rs ${totalExp}` : '—'}</div><div className="csub">{expenses.length} entries</div></div>
+        <div className="card"><div className="clabel">Net for the day</div><div className="cnum" style={{ color: totalFees - totalExp < 0 ? '#b91c1c' : '#166534' }}>{`Rs ${totalFees - totalExp}`}</div><div className="csub">fees − expenses</div></div>
       </div>
 
       <table className="grid">
@@ -59,6 +65,23 @@ export default function DayBookPanel({ store }) {
             </tr>
           ))}
           {visits.length === 0 && <tr><td colSpan="8" className="muted" style={{ textAlign: 'center' }}>No visits recorded on this date.</td></tr>}
+        </tbody>
+      </table>
+
+      <h2 className="ptitle" style={{ marginTop: 18 }}>Expenses</h2>
+      <div className="toolbar" style={{ marginBottom: 8 }}>
+        <input className="in" style={{ flex: 1 }} value={exTitle} placeholder="Expense title — rent share, disposables, staff…" onChange={e => setExTitle(e.target.value)} />
+        <input className="in" style={{ width: 110 }} value={exAmt} placeholder="Amount" onChange={e => setExAmt(e.target.value)} />
+        <button className="btn small" onClick={() => { if (!exTitle || !exAmt) return; update(s => (s.expenses = s.expenses || []).push({ id: uid(), date, title: exTitle, amount: exAmt })); setExTitle(''); setExAmt(''); }}>+ Add</button>
+      </div>
+      <table className="grid">
+        <thead><tr><th>Expense</th><th>Amount</th><th></th></tr></thead>
+        <tbody>
+          {expenses.map(e => (
+            <tr key={e.id}><td>{e.title}</td><td>Rs {e.amount}</td>
+              <td><button className="icon" onClick={() => update(s => s.expenses = (s.expenses || []).filter(x => x.id !== e.id))} aria-label="Delete expense">✕</button></td></tr>
+          ))}
+          {expenses.length === 0 && <tr><td colSpan="3" className="muted">No expenses on this date.</td></tr>}
         </tbody>
       </table>
 

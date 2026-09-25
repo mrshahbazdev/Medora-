@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { newPatient, newVisit, patientMrn, patientVisits, ageText, uid, nextToken } from '../lib/model.js';
+import { patientCardHtml } from '../lib/docsHtml.js';
 import RxEditor from './RxEditor.jsx';
 
 export default function PatientsPanel({ store, update, patientId, setPatientId, rxVisitId, setRxVisitId }) {
@@ -75,6 +76,7 @@ export default function PatientsPanel({ store, update, patientId, setPatientId, 
               <h2 style={{ margin: 0, flex: 1 }}>{patient.name} <span className="muted">MRN {patient.mrn}</span></h2>
               <button className="btn" onClick={() => newRx(patient.id)}>+ New visit / Rx</button>
               <button className="btn small ghost" onClick={() => update(s => { const d = new Date().toISOString().slice(0, 10); s.queue.push({ id: uid(), patientId: patient.id, at: d, tokenNo: nextToken(s, d), room: s.settings.rooms?.[0] || '', doctorId: '', status: 'waiting', note: '' }); })}>Add to today's queue</button>
+              <button className="btn small ghost" onClick={() => window.api.export.print({ html: patientCardHtml({ store, patient }) })}>Print card</button>
               <button className="icon" onClick={() => delPatient(patient.id)} aria-label="Delete patient">✕</button>
             </div>
 

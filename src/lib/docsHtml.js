@@ -147,3 +147,63 @@ export function dayRegisterHtml({ store, date, rows }) {
     <div class="sign"><div>${esc(st.doctorName || 'Doctor')} — Signature</div></div>
   </div></body></html>`;
 }
+
+export function patientCardHtml({ store, patient }) {
+  const st = store.settings;
+  const bars = Array.from(patient.mrn).map(c => `<i style="display:inline-block;width:${(c.charCodeAt(0)%3)+1}px;height:100%;background:#0f172a"></i>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: 86mm 54mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; }
+    .card { width: 86mm; height: 54mm; border: 1px solid #0d9488; border-radius: 3mm; overflow: hidden; }
+    .head { background: #0d9488; color: #fff; padding: 2.5mm 4mm; font-size: 8pt; font-weight: 700; display: flex; justify-content: space-between; }
+    .head small { font-weight: 400; opacity: .85; }
+    .body { padding: 3mm 4mm; }
+    .nm { font-size: 11pt; font-weight: 800; color: #134e4a; }
+    .mrn { font-family: Consolas, monospace; font-size: 12pt; letter-spacing: 0.12em; margin: 1mm 0; }
+    .meta { font-size: 7pt; color: #475569; }
+    .bc { height: 7mm; margin-top: 2.5mm; display: flex; align-items: flex-end; gap: 1px; }
+    .foot { font-size: 6.5pt; color: #94a3b8; padding: 0 4mm 2mm; }
+  </style></head><body><div class="card">
+    <div class="head"><span>${esc(st.clinicName || 'Clinic')} — Patient Card</span><small>${esc(st.clinicPhone || '')}</small></div>
+    <div class="body">
+      <div class="nm">${esc(patient.name)}</div>
+      <div class="mrn">${esc(patient.mrn)}</div>
+      <div class="meta">${patient.gender ? esc(patient.gender) + ' · ' : ''}${esc(ageText(patient))} · ${esc(patient.phone || '')}${patient.allergies ? ' · ⚠ ' + esc(patient.allergies) : ''}</div>
+      <div class="bc">${bars}</div>
+    </div>
+    <div class="foot">Bring this card on every visit · ہر وزٹ پر یہ کارڈ ساتھ لائیں</div>
+  </div></body></html>`;
+}
+
+export function dischargeSummaryHtml({ store, patient, adm }) {
+  const st = store.settings;
+  const doc = (st.doctors || []).find(d => d.id === adm.doctorId);
+  const days = adm.dischargedOn ? Math.max(1, Math.round((new Date(adm.dischargedOn) - new Date(adm.admittedOn)) / 86400000) + 1) : '';
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${rxCss ? '' : ''}
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .pg { width: 210mm; min-height: 250mm; padding: 18mm 20mm; }
+    h1 { font-size: 16pt; color: #134e4a; text-align: center; }
+    .sub { text-align: center; font-size: 8.5pt; color: #64748b; margin-bottom: 8mm; }
+    h2 { font-size: 10pt; color: #0d9488; text-transform: uppercase; letter-spacing: .08em; margin: 6mm 0 2mm; border-bottom: 1px solid #99f6e4; padding-bottom: 1mm; }
+    .row { display: flex; gap: 6mm; font-size: 10pt; margin: 1.5mm 0; }
+    .row b { min-width: 45mm; }
+    .box { font-size: 10pt; line-height: 1.6; white-space: pre-wrap; }
+    .sig { display: flex; justify-content: space-between; margin-top: 20mm; font-size: 9pt; }
+    .sig div { border-top: 1px solid #0f172a; padding-top: 2mm; width: 55mm; text-align: center; }
+  </style></head><body><div class="pg">
+    <h1>${esc(st.clinicName || 'Clinic')}</h1>
+    <div class="sub">${esc(st.clinicAddress || '')} · ${esc(st.clinicPhone || '')} · DISCHARGE SUMMARY</div>
+    <h2>Patient</h2>
+    <div class="row"><b>Name</b><span>${esc(patient.name)}</span><b>MRN</b><span>${esc(patient.mrn)}</span></div>
+    <div class="row"><b>Age / Gender</b><span>${esc(ageText(patient))}${patient.gender ? ' / ' + esc(patient.gender) : ''}</span><b>Ward / Bed</b><span>${esc(adm.ward)}${adm.bed ? ' / Bed ' + esc(adm.bed) : ''}</span></div>
+    <div class="row"><b>Admitted</b><span>${esc(adm.admittedOn)}</span><b>Discharged</b><span>${esc(adm.dischargedOn)}${days ? ` (${days} day${days > 1 ? 's' : ''})` : ''}</span></div>
+    <h2>Diagnosis & treatment</h2>
+    <div class="box">${esc(adm.note || '—')}</div>
+    <h2>Discharge advice</h2>
+    <div class="box">${esc(adm.dischargeNote || 'Continue medicines as advised. Follow up in OPD.')}</div>
+    <div class="sig"><div>Date</div><div>${esc(doc ? doc.name : (st.doctorName || 'Doctor'))}</div></div>
+  </div></body></html>`;
+}

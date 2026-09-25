@@ -22,6 +22,8 @@ function itemLine(item, bilingual) {
  * size: 'a5' (half of A4, the standard pad) or 'a4'.
  */
 export function rxDocument({ store, patient, visit }) {
+  const st0 = store.settings;
+  if (st0.padStyle === 'label') return rxLabelDocument({ store, patient, visit });
   const st = { ...store.settings };
   const doc = (st.doctors || []).find(d => d.id === visit?.doctorId);
   if (doc) { st.doctorName = doc.name; st.qualifications = doc.qualifications || st.qualifications; }
@@ -116,4 +118,36 @@ export function rxCss(size, template) {
   .rx-foot { position: absolute; bottom: ${size.w === 210 ? '14mm' : '8mm'}; left: ${size.w === 210 ? '18mm' : '10mm'}; right: ${size.w === 210 ? '18mm' : '10mm'}; display: flex; justify-content: space-between; align-items: flex-end; font-size: 8.5pt; }
   .rx-sign { border-top: 0.5px solid #0f172a; padding-top: 1mm; min-width: 30mm; text-align: center; font-size: 9pt; }
   `;
+}
+
+
+export function rxLabelDocument({ store, patient, visit }) {
+  const st = { ...store.settings };
+  const doc = (st.doctors || []).find(d => d.id === visit?.doctorId);
+  if (doc) { st.doctorName = doc.name; st.qualifications = doc.qualifications || st.qualifications; }
+  const items = visit.items.map((it, i) => {
+    const f = FREQUENCIES.find(x => x.code === it.freq);
+    return `<div class="li"><b>${i + 1}. ${esc(it.name)}</b>${it.strength ? ` ${esc(it.strength)}` : ''}${it.form ? ` (${esc(it.form)})` : ''}
+      <div class="mut">${f ? `${f.pattern}${it.days ? ` × ${it.days}d` : ''}` : ''}${f && st.bilingual && f.ur ? ` · ${f.ur}` : ''}${it.note ? ` — ${esc(it.note)}` : ''}</div></div>`;
+  }).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: 80mm 140mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+    .lab { width: 80mm; padding: 4mm; font-size: 8.5pt; }
+    .cl { text-align: center; border-bottom: 1.5px solid #0d9488; padding-bottom: 2mm; margin-bottom: 2.5mm; }
+    .cl b { font-size: 9.5pt; color: #134e4a; display: block; }
+    .cl span { font-size: 6.5pt; color: #64748b; }
+    .pt { font-size: 8pt; margin-bottom: 2mm; }
+    .rx { font-size: 15pt; font-weight: 800; color: #0d9488; float: left; margin-right: 2mm; }
+    .li { margin-bottom: 1.6mm; }
+    .mut { font-size: 7.5pt; color: #475569; padding-left: 4mm; }
+    .foot { border-top: 1px dashed #94a3b8; margin-top: 3mm; padding-top: 1.5mm; font-size: 7pt; color: #475569; display: flex; justify-content: space-between; }
+  </style></head><body><div class="lab">
+    <div class="cl"><b>${esc(st.clinicName || 'Clinic')}</b><span>${esc(st.doctorName || '')} · ${esc(st.clinicPhone || '')}</span></div>
+    <div class="pt"><b>${esc(patient.name)}</b> ${esc(ageText(patient))} · ${visit.date}${patient.mrn ? ` · ${esc(patient.mrn)}` : ''}</div>
+    ${visit.diagnosis ? `<div class="pt"><i>Dx: ${esc(visit.diagnosis)}</i></div>` : ''}
+    <div><span class="rx">℞</span><div style="overflow:hidden">${items}</div></div>
+    <div class="foot"><span>${visit.followUpDays ? `Follow up: ${visit.followUpDays}d` : ''}</span><span>${st.showFee && visit.fee ? `Rs ${visit.fee}` : ''}</span></div>
+  </div></body></html>`;
 }

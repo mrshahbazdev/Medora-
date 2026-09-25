@@ -6,20 +6,23 @@ import QueuePanel from './components/QueuePanel.jsx';
 import MedsPanel from './components/MedsPanel.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
 import DayBookPanel from './components/DayBookPanel.jsx';
+import AdmissionsPanel from './components/AdmissionsPanel.jsx';
 import { exportCsv } from './lib/csv.js';
 
 const NAV = [
-  { sec: 'Front desk', items: [
-    { id: 'dash', label: 'Dashboard', glyph: '⌂' },
-    { id: 'queue', label: 'Token queue', glyph: '≡' },
-    { id: 'patients', label: 'Patients', glyph: '◉' },
-    { id: 'daybook', label: 'Day book', glyph: '▤' }
+  { sec: 'Front desk', secUr: 'رجسٹرار', items: [
+    { id: 'dash', label: 'Dashboard', ur: 'ڈیش بورڈ', glyph: '⌂' },
+    { id: 'queue', label: 'Token queue', ur: 'ٹوکن قطار', glyph: '≡' },
+    { id: 'patients', label: 'Patients', ur: 'مریض', glyph: '◉' },
+    { id: 'wards', label: 'Wards / IPD', ur: 'وارڈ', glyph: '⌂' },
+    { id: 'daybook', label: 'Day book', ur: 'روزنامچہ', glyph: '▤' }
   ]},
-  { sec: 'Clinic', items: [
-    { id: 'meds', label: 'Medicines', glyph: '℞' },
-    { id: 'settings', label: 'Settings', glyph: '⚙' }
+  { sec: 'Clinic', secUr: 'کلینک', items: [
+    { id: 'meds', label: 'Medicines', ur: 'ادویات', glyph: '℞' },
+    { id: 'settings', label: 'Settings', ur: 'ترتیبات', glyph: '⚙' }
   ]}
 ];
+const RECEPTION_TABS = ['queue', 'daybook'];
 
 export default function App() {
   const [store, setStore] = useState(null);
@@ -60,7 +63,10 @@ export default function App() {
     openPatient(p.id);
   };
 
-  const exportAllJson = () => window.api.export.json({ json: JSON.stringify(store, null, 2), suggestedName: 'medora-backup.json' });
+  const exportAllJson = () => {
+    window.api.export.json({ json: JSON.stringify(store, null, 2), suggestedName: 'medora-backup.json' });
+    update(s => s.settings.lastBackupAt = new Date().toISOString().slice(0, 10));
+  };
   const exportAllCsv = () => window.api.export.text({ text: exportCsv(store), suggestedName: 'medora-patients.csv' });
   const importJson = async () => {
     const f = await window.api.app.openFile({ filters: [{ name: 'JSON', extensions: ['json'] }] });
@@ -76,16 +82,22 @@ export default function App() {
   if (!store) return <div className="boot">Loading…</div>;
 
   const firstRun = !store.settings.firstRunDone;
+  const ur = !!store.settings.uiUrdu;
+  const reception = !!store.settings.receptionMode;
+  const nav = reception
+    ? NAV.map(g => ({ ...g, items: g.items.filter(i => RECEPTION_TABS.includes(i.id)) })).filter(g => g.items.length)
+    : NAV;
+  if (reception && !RECEPTION_TABS.includes(tab)) setTab('queue');
   return (
-    <div className="app">
+    <div className="app" dir={ur ? 'rtl' : 'ltr'}>
       <aside className="side">
         <div className="sbrand"><span className="smark">✚</span><div><div className="sname">Medora</div><div className="ssub">Clinic OS</div></div></div>
-        {NAV.map(g => (
+        {nav.map(g => (
           <div key={g.sec} className="sgrp">
-            <div className="ssec">{g.sec}</div>
+            <div className="ssec">{ur ? (g.secUr || g.sec) : g.sec}</div>
             {g.items.map(t => (
               <button key={t.id} className={'snav' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
-                <span className="sglyph">{t.glyph}</span>{t.label}
+                <span className="sglyph">{t.glyph}</span>{ur ? (t.ur || t.label) : t.label}
               </button>
             ))}
           </div>
@@ -102,6 +114,13 @@ export default function App() {
             <b>{store.settings.clinicName || 'Clinic'}</b>
             <span className="opd">OPD open</span>
             <span className="muted">{(store.settings.doctors || [])[0]?.name || store.settings.doctorName || ''}</span>
+            {(store.settings.branches || []).length > 0 && (
+              <select className="in" style={{ padding: '3px 8px', fontSize: 12 }} value={store.settings.activeBranch || ''} title="Branch"
+                onChange={e => update(s => s.settings.activeBranch = e.target.value)}>
+                <option value="">Main branch</option>
+                {store.settings.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>)}
+            {reception && <span className="opd" style={{ background: '#fde68a', color: '#92400e' }}>Receptionist</span>}
           </div>
           <span className="spacer" />
           <div className="top-actions">
@@ -123,12 +142,13 @@ export default function App() {
         </div>
       )}
 
-        <main className="body">
+          <main className="body">
         {tab === 'dash' && <Dashboard store={store} update={update} openPatient={openPatient} openRx={openRx} />}
         {tab === 'queue' && <QueuePanel store={store} update={update} openPatient={openPatient} openRx={openRx} />}
         {tab === 'patients' && <PatientsPanel store={store} update={update} patientId={patientId} setPatientId={setPatientId} rxVisitId={rxVisitId} setRxVisitId={setRxVisitId} />}
         {tab === 'meds' && <MedsPanel store={store} update={update} />}
         {tab === 'daybook' && <DayBookPanel store={store} update={update} />}
+        {tab === 'wards' && <AdmissionsPanel store={store} update={update} />}
         {tab === 'settings' && <SettingsPanel store={store} update={update} setStore={setStore} />}
         </main>
         <footer className="foot">Medora v{version} — offline patient register &amp; prescription pad. Nothing leaves this computer.</footer>

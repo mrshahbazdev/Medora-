@@ -14,7 +14,7 @@ export default function QueuePanel({ store, update, openPatient, openRx }) {
 
   const add = () => {
     if (!pick) return;
-    update(s => s.queue.push({ id: uid(), patientId: pick, at: date, tokenNo: nextToken(s, date), room, doctorId, status: 'waiting', note: '' }));
+    update(s => s.queue.push({ id: uid(), patientId: pick, at: date, tokenNo: nextToken(s, date), room, doctorId, branch: s.settings.activeBranch || '', status: 'waiting', note: '' }));
     setPick('');
   };
 

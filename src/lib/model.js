@@ -10,6 +10,9 @@ export function emptyStore() {
     medicines: [],
     queue: [],
     appointments: [],
+    admissions: [],
+    expenses: [],
+    branches: [],
     settings: defaultSettings()
   };
 }
@@ -22,6 +25,13 @@ export function defaultSettings() {
     doctors: [], // { id, name, qualifications, room }
     rooms: [],
     paperSize: 'a5', // 'a5' | 'a4'
+    padStyle: 'letter', // 'letter' | 'label' | 'form'
+    receptionMode: false,
+    uiUrdu: false,
+    backupFolder: '',
+    lastBackupAt: '',
+    wards: ['General Ward', 'Private Room', 'ICU'],
+    branches: [],
     template: 'classic', // 'classic' | 'modern'
     bilingual: true,
     showVitals: true,
@@ -70,6 +80,11 @@ export function visitPatient(store, v) {
 export function patientVisits(store, patientId) {
   return store.visits.filter(v => v.patientId === patientId)
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function newAdmission(patientId, { ward, bed, doctorId, note }) {
+  return { id: uid(), patientId, ward: ward || '', bed: bed || '', doctorId: doctorId || '',
+    admittedOn: new Date().toISOString().slice(0, 10), dischargedOn: '', note: note || '' };
 }
 
 export function newAppointment({ patientId, date, doctorId, note }) {
@@ -153,6 +168,11 @@ export function sampleStore() {
       advice: [8, 10], followUpDays: 30, fee: '2000' }
   );
 
+  s.admissions = [];
+  s.expenses = [
+    { id: uid(), date: today, title: 'Disposables', amount: '400' },
+    { id: uid(), date: today, title: 'Cleaning staff', amount: '1500' }
+  ];
   s.appointments = [
     { id: uid(), patientId: 'p1', date: today, doctorId: 'd1', note: 'BP review' },
     { id: uid(), patientId: 'p2', date: today, doctorId: 'd1', note: 'Postnatal check' }

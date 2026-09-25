@@ -4,6 +4,9 @@ import { FREQUENCIES } from '../lib/meds.js';
 
 export default function MedsPanel({ store, update }) {
   const [q, setQ] = useState('');
+  const today = new Date().toISOString().slice(0, 10);
+  const lowStock = store.medicines.filter(m => m.stock !== '' && m.stock != null && Number(m.stock) <= 10);
+  const expiring = store.medicines.filter(m => m.expiry && m.expiry <= today.slice(0, 8) + '99').sort((a, b) => a.expiry.localeCompare(b.expiry));
   const meds = useMemo(() => {
     const n = q.trim().toLowerCase();
     return n ? store.medicines.filter(m => m.name.toLowerCase().includes(n) || (m.generic || '').toLowerCase().includes(n)) : store.medicines;
@@ -18,6 +21,12 @@ export default function MedsPanel({ store, update }) {
         <button className="btn" onClick={() => update(s => s.medicines.unshift({ id: uid(), name: 'New medicine', generic: '', form: 'Tab', strength: '', freq: 'TDS', days: 5 }))}>+ Medicine</button>
         <span className="muted">{store.medicines.length} in library — defaults here pre-fill every new Rx line</span>
       </div>
+      {(lowStock.length > 0 || expiring.length > 0) && (
+        <div className="warn" style={{ marginBottom: 10 }}>
+          {lowStock.length > 0 && <div>⚠ Low stock: {lowStock.map(m => `${m.name} (${m.stock})`).join(', ')}</div>}
+          {expiring.length > 0 && <div>⚠ Expiring soon: {expiring.slice(0, 5).map(m => `${m.name} — ${m.expiry}`).join(', ')}</div>}
+        </div>
+      )}
       <table className="grid">
         <thead><tr><th>Brand name</th><th>Generic</th><th>Form</th><th>Strength</th><th>Default freq</th><th className="num">Days</th><th></th></tr></thead>
         <tbody>

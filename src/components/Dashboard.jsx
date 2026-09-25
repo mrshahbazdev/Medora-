@@ -5,7 +5,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export default function Dashboard({ store, update, openPatient, openRx }) {
   const t = today();
-  const queue = store.queue.filter(q => q.at === t && q.status !== 'done');
+  const branch = store.settings.activeBranch || '';
+  const queue = store.queue.filter(q => q.at === t && q.status !== 'done' && (!branch || (q.branch || '') === branch));
+  const backupAge = store.settings.lastBackupAt ? Math.floor((new Date(t) - new Date(store.settings.lastBackupAt)) / 86400000) : null;
+  const backupStale = backupAge === null || backupAge > 7;
   const visitsToday = store.visits.filter(v => v.date === t);
   const feesToday = visitsToday.reduce((n, v) => n + (Number(v.fee) || 0), 0);
 
@@ -19,6 +22,10 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
 
   return (
     <div className="panel">
+      {backupStale && (
+        <div className="warn" style={{ marginBottom: 12 }}>
+          💾 {backupAge === null ? 'No backup made yet' : `Last backup ${backupAge} days ago`} — click <b>Backup</b> in the top bar to save a copy{store.settings.backupFolder ? ` to ${store.settings.backupFolder}` : ''}.
+        </div>)}
       <div className="cards" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         <div className="card"><div className="clabel">In queue today</div><div className="cval">{queue.length}</div><div className="csub">waiting patients</div></div>
         <div className="card ok"><div className="clabel">Seen today</div><div className="cval">{visitsToday.length}</div><div className="csub">prescriptions written</div></div>
@@ -33,7 +40,7 @@ export default function Dashboard({ store, update, openPatient, openRx }) {
         if (!p) return null;
         return (
           <div className="qrow" key={q.id}>
-            <div className="qnum">{q.tokenNo || i + 1}</div>
+            <div className="qnum">{q.tokenNo || i + 1}</div>{q.branch && <span className="muted" style={{ fontSize: 10.5 }}>{(store.settings.branches || []).find(b => b.id === q.branch)?.name}</span>}
             <div style={{ flex: 1 }}>
               <b>{p.name}</b> <span className="muted">{p.gender}, {ageText(p)} · MRN {p.mrn}</span>
               <div className="muted" style={{ fontSize: 11.5 }}>
