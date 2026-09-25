@@ -461,3 +461,20 @@ body { background: var(--bg); font-family: 'Inter', 'Segoe UI', system-ui, sans-
 /* icon buttons */
 .icon { border-radius: 8px; transition: background .15s; }
 .icon:hover { background: #eff6ff; color: var(--accent-strong); }
+
+/* ---------- patient detail hero ---------- */
+.phero { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.pavatar { width: 46px; height: 46px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 19px; color: #fff; background: linear-gradient(135deg, #2563eb, #38bdf8);
+  box-shadow: 0 4px 10px rgba(37,99,235,.3); overflow: hidden; }
+.pavatar img { width: 100%; height: 100%; object-fit: cover; }
+.pchips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.pc { font-size: 11px; font-weight: 600; color: var(--muted); background: #f1f5f9; border: 1px solid var(--line-soft); border-radius: 999px; padding: 2px 9px; }
+.pc-tag { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.pc-warn { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+.pcard { margin: 6px 0 12px; padding: 11px 15px; background: #f8fbff; border: 1px solid var(--line-soft); border-radius: 12px; font-size: 13px; }
+.pcard a { color: var(--accent-strong); font-weight: 600; text-decoration: none; }
+.pcard a:hover { text-decoration: underline; }
+.phero h2 { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* patient hero takes the full first row of the detail header card */
+.pdetail .phero, .toolbar .phero { flex: 1 1 100%; order: -1; margin-bottom: 4px; }

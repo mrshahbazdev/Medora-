@@ -77,9 +77,23 @@ export default function App() {
         window.api.export.toFolder({ folder: store.settings.syncFolder, name: 'medora-sync.json', text });
         syncText.current = text;
       }
+      if (store.settings.syncAuto !== false) window.api.sync.publish(store);
     }, 600);
     return () => clearTimeout(saveTimer.current);
   }, [store]);
+
+  // Zero-config LAN sync: when another Medora instance on the network has a
+  // newer store, apply it here automatically (no shared folder needed).
+  useEffect(() => {
+    if (!window.api.sync?.onApply) return;
+    window.api.sync.onApply(doc => {
+      const base = emptyStore();
+      Object.keys(base).forEach(k => { if (doc[k] === undefined) doc[k] = base[k]; });
+      ['ledger', 'purchases', 'otSchedule', 'bloodBank', 'referrals', 'nursing', 'attendance', 'payroll'].forEach(k => { if (!Array.isArray(doc[k])) doc[k] = []; });
+      setStore(doc);
+      setSyncFlash(Date.now());
+    });
+  }, []);
 
   // LAN auto-sync: poll the shared sync file; when another PC on the network
   // writes a newer store, adopt it locally (ignores our own writes).
@@ -110,6 +124,7 @@ export default function App() {
     const next = structuredClone(s);
     fn(next);
     next.auditLog = next.auditLog || [];
+    next.updatedAt = Date.now();
     next.auditLog.push({ at: new Date().toISOString(), user: (user && user.name) || 'app', what: label || 'edit' });
     if (next.auditLog.length > 500) next.auditLog = next.auditLog.slice(-500);
     return next;
@@ -190,10 +205,10 @@ export default function App() {
                 {store.settings.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>)}
             {reception && <span className="opd" style={{ background: '#fde68a', color: '#92400e' }}>Receptionist</span>}
-            {store.settings.syncFolder && store.settings.syncAuto !== false && (
-              <span className="opd" title={`LAN auto-sync on — watching ${store.settings.syncFolder}/medora-sync.json every 5s`}
+            {store.settings.syncAuto !== false && (
+              <span className="opd" title="Auto-sync on — updates move between Medora apps on this WiFi/LAN automatically"
                 style={Date.now() - syncFlash < 8000 ? { background: '#bbf7d0', color: '#166534' } : { background: '#e0f2fe', color: '#0369a1' }}>
-                ↻ LAN sync
+                ↻ Live sync
               </span>)}
             {user && <span className="muted">👤 {user.name} <button className="icon" title="Lock" onClick={() => setUser(null)}>🔒</button></span>}
             <button className="icon" title="Waiting-room TV board" onClick={() => window.open(window.location.href.split('?')[0] + '?tv=1', '_blank')}>📺</button>

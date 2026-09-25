@@ -18,6 +18,11 @@ contextBridge.exposeInMainWorld('api', {
     toFolder: (payload) => ipcRenderer.invoke('export:toFolder', payload),
     readFromFolder: (payload) => ipcRenderer.invoke('export:readFromFolder', payload)
   },
+  sync: {
+    publish: (doc) => ipcRenderer.invoke('sync:publish', { doc }),
+    status: () => ipcRenderer.invoke('sync:status'),
+    onApply: (cb) => ipcRenderer.on('medora:sync-apply', (_e, doc) => cb(doc))
+  },
   app: {
     version: () => ipcRenderer.invoke('app:version'),
     openFile: (opts) => ipcRenderer.invoke('app:openFile', opts || {}),
